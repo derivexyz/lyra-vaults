@@ -3,8 +3,6 @@ pragma solidity ^0.8.9;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import {OptionMarket} from "@lyrafinance/core/contracts/OptionMarket.sol";
 
 import {BaseVault} from "./BaseVault.sol";
 import {DeltaStrategy} from "../strategies/DeltaStrategy.sol";
@@ -12,14 +10,11 @@ import {Vault} from "../libraries/Vault.sol";
 
 /// @notice LyraVault help users run option-selling strategies on Lyra AMM.
 contract LyraVault is Ownable, BaseVault {
-  using SafeMath for uint;
-
   IERC20 public immutable premiumAsset;
   IERC20 public immutable collateralAsset;
 
   DeltaStrategy public strategy;
   address public lyraRewardRecipient;
-
 
   // Amount locked for scheduled withdrawals last week;
   uint128 public lastQueuedWithdrawAmount;
@@ -41,7 +36,6 @@ contract LyraVault is Ownable, BaseVault {
   event RoundClosed(uint16 roundId, uint104 lockAmount);
 
   constructor(
-    address _optionMarket,
     address _susd,
     address _feeRecipient,
     uint _roundDuration,
@@ -51,13 +45,11 @@ contract LyraVault is Ownable, BaseVault {
     bytes32 _premiumCurrencyKey,
     bytes32 _sETHCurrencyKey
   ) BaseVault(_feeRecipient, _roundDuration, _tokenName, _tokenSymbol, _vaultParams) {
-    optionMarket = OptionMarket(_optionMarket);
     premiumAsset = IERC20(_susd);
     collateralAsset = IERC20(_vaultParams.asset);
 
     premiumCurrencyKey = _premiumCurrencyKey;
     sETHCurrencyKey = _sETHCurrencyKey;
-
   }
 
   /// @dev set strategy contract. This function can only be called by owner.
@@ -83,10 +75,10 @@ contract LyraVault is Ownable, BaseVault {
     (uint positionId, uint realPremium) = strategy.doTrade(strikeId, setCollateralTo, lyraRewardRecipient);
 
     uint collateralAfter = IERC20(vaultParams.asset).balanceOf(address(this));
-    uint assetUsed = collateralBefore.sub(collateralAfter);
+    uint assetUsed = collateralBefore - collateralAfter;
 
     // update the remaining locked amount
-    vaultState.lockedAmountLeft = vaultState.lockedAmountLeft.sub(assetUsed);
+    vaultState.lockedAmountLeft = vaultState.lockedAmountLeft - assetUsed;
 
     // todo: udpate events
     emit Trade(msg.sender, positionId, realPremium);
@@ -110,7 +102,7 @@ contract LyraVault is Ownable, BaseVault {
     vaultState.lastLockedAmount = lockAmount;
     vaultState.lockedAmountLeft = 0;
     vaultState.lockedAmount = 0;
-    vaultState.nextRoundReadyTimestamp = block.timestamp.add(Vault.ROUND_DELAY);
+    vaultState.nextRoundReadyTimestamp = block.timestamp + Vault.ROUND_DELAY;
     vaultState.roundInProgress = false;
 
     // won't be able to close if positions are not settled
