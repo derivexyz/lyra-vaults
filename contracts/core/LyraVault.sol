@@ -8,20 +8,18 @@ import {OptionMarket} from "@lyrafinance/core/contracts/OptionMarket.sol";
 
 import {BaseVault} from "./BaseVault.sol";
 import {DeltaStrategy} from "../strategies/DeltaStrategy.sol";
-import {VaultAdapter} from "@lyrafinance/core/contracts/periphery/VaultAdapter.sol";
 import {Vault} from "../libraries/Vault.sol";
 
 /// @notice LyraVault help users run option-selling strategies on Lyra AMM.
 contract LyraVault is Ownable, BaseVault {
   using SafeMath for uint;
 
-  OptionMarket public immutable optionMarket;
-
   IERC20 public immutable premiumAsset;
   IERC20 public immutable collateralAsset;
 
   DeltaStrategy public strategy;
   address public lyraRewardRecipient;
+
 
   // Amount locked for scheduled withdrawals last week;
   uint128 public lastQueuedWithdrawAmount;
@@ -59,6 +57,7 @@ contract LyraVault is Ownable, BaseVault {
 
     premiumCurrencyKey = _premiumCurrencyKey;
     sETHCurrencyKey = _sETHCurrencyKey;
+
   }
 
   /// @dev set strategy contract. This function can only be called by owner.
