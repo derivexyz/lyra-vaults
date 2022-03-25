@@ -71,7 +71,7 @@ contract LyraVault is Ownable, BaseVault {
   function trade(uint strikeId) external {
     require(vaultState.roundInProgress, "round closed");
 
-    uint collateralToAdd = strategy.getRequiredCollateral(strikeId);
+    (uint collateralToAdd, uint setCollateralTo) = strategy.getRequiredCollateral(strikeId);
 
     // open a short call position on lyra and collect premium
     uint collateralBefore = IERC20(vaultParams.asset).balanceOf(address(this));
@@ -81,10 +81,9 @@ contract LyraVault is Ownable, BaseVault {
     );
 
     // perform trade through strategy
-    (uint positionId, uint realPremium) = strategy.doTrade(strikeId, collateralToAdd, lyraRewardRecipient);
+    (uint positionId, uint realPremium) = strategy.doTrade(strikeId, setCollateralTo, lyraRewardRecipient);
 
     uint collateralAfter = IERC20(vaultParams.asset).balanceOf(address(this));
-
     uint assetUsed = collateralBefore.sub(collateralAfter);
 
     // update the remaining locked amount

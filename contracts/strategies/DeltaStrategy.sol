@@ -85,11 +85,11 @@ contract DeltaStrategy is VaultAdapter {
   function returnFundsAndClearStrikes() external onlyVault {
     ExchangeRateParams memory exchangeParams = getExchangeParams();
     uint quoteBal = quoteAsset.balanceOf(address(this));
-    uint baseBal = baseAsset.balanceOf(address(this));
 
     uint quoteReceived = 0;
     if (_isBaseCollat()) {
       // todo: double check this
+      uint baseBal = baseAsset.balanceOf(address(this));
       uint minQuoteExpected = baseBal.multiplyDecimal(exchangeParams.spotPrice).multiplyDecimal(
         DecimalMath.UNIT - exchangeParams.baseQuoteFeeRate
       );
@@ -103,26 +103,38 @@ contract DeltaStrategy is VaultAdapter {
   /**
    * @dev convert size (denominated in standard sizes) to actual contract amount.
    */
-  function getRequiredCollateral(uint strikeId) external view returns (uint requiredCollat) {
+  function getRequiredCollateral(uint strikeId) external view returns (uint collateralToAdd, uint setCollateralTo) {
     Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
     uint sellAmount = currentStrategy.size;
     ExchangeRateParams memory exchangeParams = getExchangeParams();
 
-    // sets the correct amount for this trade instance
-    // if existing collateral is at risk, most likely wont be trading the same strike
-    // can call reducePosition() if previous trades are below buffer
+    // get existing position info if active
+    uint existingAmount = 0;
+    uint existingCollateral = 0;
+    if (_isActiveStrike(strike.id)) {
+      OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
+      existingCollateral = position.collateral;
+      existingAmount = position.amount;
+    }
+
+    // gets minBufferCollat for the whole position
     uint minBufferCollateral = _getBufferCollateral(
       strike.strikePrice,
       strike.expiry,
       exchangeParams.spotPrice,
-      sellAmount
+      existingAmount + sellAmount
     );
 
-    uint targetCollat = _getFullCollateral(strike.strikePrice, sellAmount).multiplyDecimal(
-      currentStrategy.collatPercent
-    );
+    // get targetCollat for this trade instance
+    // prevents vault from adding excess collat just to meet targetCollat
+    uint targetCollat = existingCollateral +
+      _getFullCollateral(strike.strikePrice, sellAmount).multiplyDecimal(currentStrategy.collatPercent);
 
-    requiredCollat = _max(minBufferCollateral, targetCollat);
+    // if excess collateral, keep in position to encourage more option selling
+    setCollateralTo = _max(_max(minBufferCollateral, targetCollat), existingCollateral);
+
+    // existingCollateral is never > setCollateralTo
+    collateralToAdd = setCollateralTo - existingCollateral;
   }
 
   /**
@@ -132,7 +144,7 @@ contract DeltaStrategy is VaultAdapter {
    */
   function doTrade(
     uint strikeId,
-    uint collateralToAdd,
+    uint setCollateralTo,
     address lyraRewardRecipient
   ) external onlyVault returns (uint, uint) {
     Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
@@ -145,11 +157,6 @@ contract DeltaStrategy is VaultAdapter {
 
     // get minimum expected premium based on minIv
     uint minExpectedPremium = _getPremiumLimit(strike, true);
-    uint existingCollateral = 0;
-    if (_isActiveStrike(strike.id)) {
-      OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
-      existingCollateral = position.collateral;
-    }
 
     // perform trade
     TradeResult memory result = openPosition(
@@ -159,7 +166,7 @@ contract DeltaStrategy is VaultAdapter {
         iterations: 4,
         optionType: optionType,
         amount: currentStrategy.size,
-        setCollateralTo: existingCollateral + collateralToAdd,
+        setCollateralTo: setCollateralTo,
         minTotalCost: minExpectedPremium,
         maxTotalCost: type(uint).max,
         rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
