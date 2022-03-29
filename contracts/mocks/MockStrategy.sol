@@ -5,8 +5,8 @@ import {IStrategy} from "../interfaces/IStrategy.sol";
 import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 
 contract MockStrategy is IStrategy {
-  IERC20Detailed public collateral;
-  IERC20Detailed public premium;
+  IERC20Detailed public immutable collateral;
+  IERC20Detailed public immutable premium;
 
   uint public tradePremiumAmount;
   uint public tradeCollateralAmount;
@@ -15,19 +15,16 @@ contract MockStrategy is IStrategy {
 
   uint public boardId;
 
+  constructor(IERC20Detailed _premiumToken, IERC20Detailed _collateralToken) {
+    collateral = _collateralToken;
+    premium = _premiumToken;
+  }
+
   function setBoard(uint _boardId) external {
     boardId = _boardId;
   }
 
-  function setMockedTradeAmount(
-    IERC20Detailed _premiumToken,
-    IERC20Detailed _collateralToken,
-    uint _premium,
-    uint _collateral
-  ) public {
-    collateral = _collateralToken;
-    premium = _premiumToken;
-
+  function setMockedTradeAmount(uint _premium, uint _collateral) public {
     tradePremiumAmount = _premium;
     tradeCollateralAmount = _collateral;
   }

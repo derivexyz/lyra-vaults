@@ -3,7 +3,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
-import { LyraVault, MockERC20, MockOptionMarket, MockStrategy, MockSynthetix } from '../../../typechain-types';
+import { LyraVault, MockERC20, MockStrategy } from '../../../typechain-types';
 import { FEE_MULTIPLIER } from '../utils/constants';
 import { toBytes32 } from '../utils/synthetixUtils';
 
@@ -13,8 +13,6 @@ describe('Unit test: Basic LyraVault flow', async () => {
 
   // mocked contracts
   let mockedStrategy: MockStrategy;
-  let mockedMarket: MockOptionMarket;
-  let mockedSynthetix: MockSynthetix;
 
   let seth: MockERC20;
   let susd: MockERC20;
@@ -51,23 +49,12 @@ describe('Unit test: Basic LyraVault flow', async () => {
   });
 
   before('prepare mocked contracts', async () => {
-    const MockStrategyFactory = await ethers.getContractFactory('MockStrategy');
-    mockedStrategy = (await MockStrategyFactory.deploy()) as MockStrategy;
-
     const MockERC20Factory = await ethers.getContractFactory('MockERC20');
     susd = (await MockERC20Factory.deploy('Synth USD', 'sUSD')) as MockERC20;
     seth = (await MockERC20Factory.deploy('Synth ETH', 'sUSD')) as MockERC20;
-  });
 
-  before('mint asset for option market and synthetix', async () => {
-    await susd.mint(mockedMarket.address, parseUnits('100000'));
-
-    await seth.connect(anyone).mint(mockedSynthetix.address, parseEther('100'));
-  });
-
-  before('setup mocked synthetix', async () => {
-    await mockedSynthetix.setMockedKeyToAddress(susdKey, susd.address);
-    await mockedSynthetix.setMockedKeyToAddress(sethKey, seth.address);
+    const MockStrategyFactory = await ethers.getContractFactory('MockStrategy');
+    mockedStrategy = (await MockStrategyFactory.deploy(seth.address, susd.address)) as MockStrategy;
   });
 
   describe('deploy', async () => {
@@ -196,10 +183,6 @@ describe('Unit test: Basic LyraVault flow', async () => {
 
   describe('trade before first round end', async () => {
     it('should revert because the first round is not started yet', async () => {
-      // set mocked asset only
-      await mockedMarket.setMockCollateral(seth.address, parseEther('1'));
-      await mockedMarket.setMockPremium(susd.address, 0);
-
       await expect(vault.trade(0)).to.be.revertedWith('round closed');
     });
   });
@@ -222,35 +205,13 @@ describe('Unit test: Basic LyraVault flow', async () => {
   });
 
   describe.skip('trade flow tests', async () => {
-    const size = parseUnits('1');
     const collateralAmount = parseUnits('1');
 
-    it('should revert if premium get from market is lower than strategy estimation', async () => {
-      // set request and check result
-      await mockedStrategy.setMockedTradeRequest(0, size, roundPremiumSUSD.add(1));
-
-      await mockedMarket.setMockCollateral(seth.address, collateralAmount);
-      await mockedMarket.setMockPremium(susd.address, roundPremiumSUSD);
-
-      await expect(vault.trade(0)).to.be.revertedWith('premium too low');
-    });
-
-    it('should revert if post trade check return false', async () => {
-      await mockedStrategy.setMockedTradeRequest(0, size, roundPremiumSUSD);
-      await mockedStrategy.setMockedPostCheck(false);
-      await expect(vault.trade(0)).to.be.revertedWith('bad trade');
-    });
-
     it('should successfully trade with returned amount', async () => {
-      // set request and check result
-      await mockedStrategy.setMockedTradeRequest(0, size, roundPremiumSUSD);
-      await mockedStrategy.setMockedPostCheck(true);
+      // send susdc to mocked strategy
+      await susd.mint(mockedStrategy.address, roundPremiumSUSD);
 
-      await mockedMarket.setMockCollateral(seth.address, collateralAmount);
-      await mockedMarket.setMockPremium(susd.address, roundPremiumSUSD);
-
-      // set synthetix exchange result
-      await mockedSynthetix.setMockedTradeAmount(seth.address, roundPremiumInEth);
+      await mockedStrategy.setMockedTradeAmount(roundPremiumSUSD, collateralAmount);
 
       const sethBefore = await seth.balanceOf(vault.address);
       await vault.trade(0);

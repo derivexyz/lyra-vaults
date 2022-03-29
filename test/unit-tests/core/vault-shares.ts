@@ -51,15 +51,15 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     const MockOptionMarketFactory = await ethers.getContractFactory('MockOptionMarket');
     mockedMarket = (await MockOptionMarketFactory.deploy()) as MockOptionMarket;
 
-    const MockStrategyFactory = await ethers.getContractFactory('MockStrategy');
-    mockedStrategy = (await MockStrategyFactory.deploy()) as MockStrategy;
-
     const MockSynthetixFactory = await ethers.getContractFactory('MockSynthetix');
     mockedSynthetix = (await MockSynthetixFactory.deploy()) as MockSynthetix;
 
     const MockERC20Factory = await ethers.getContractFactory('MockERC20');
     seth = (await MockERC20Factory.deploy('Synth ETH', 'sETH')) as MockERC20;
     susd = (await MockERC20Factory.deploy('Synth USD', 'sUSD')) as MockERC20;
+
+    const MockStrategyFactory = await ethers.getContractFactory('MockStrategy');
+    mockedStrategy = (await MockStrategyFactory.deploy(seth.address, susd.address)) as MockStrategy;
   });
 
   before('setup LyraVault instance, link to a mocked strategy', async () => {
@@ -280,24 +280,15 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     });
 
     describe.skip('stimulate trade', async () => {
-      const size = parseUnits('1');
       const collateralAmount = parseUnits('1');
       // mock premium to 300 USD
       const minPremium = parseUnits('300');
 
       before('set mocked response from strategy', async () => {
         // set request and check result
-        await mockedStrategy.setMockedTradeRequest(0, size, minPremium);
-        await mockedStrategy.setMockedPostCheck(true);
-      });
+        await mockedStrategy.setMockedTradeAmount(minPremium, collateralAmount);
 
-      before('set mocked premium', async () => {
-        await mockedMarket.setMockCollateral(seth.address, collateralAmount);
-        await mockedMarket.setMockPremium(susd.address, minPremium);
-      });
-
-      before('set mocked synthetix return', async () => {
-        await mockedSynthetix.setMockedTradeAmount(seth.address, round3PremiumInEth);
+        await susd.mint(mockedStrategy.address, minPremium);
       });
 
       it('should successfully trade', async () => {
@@ -364,24 +355,14 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
       });
     });
     describe.skip('stimulate a trade', async () => {
-      const size = parseUnits('1');
       const collateralAmount = parseUnits('1');
       const minPremium = parseUnits('400');
       const premiumInEth = parseEther('0.1');
 
-      before('set mocked response from strategy', async () => {
+      before('set mocked strategy amount', async () => {
         // set request and check result
-        await mockedStrategy.setMockedTradeRequest(0, size, minPremium);
-        await mockedStrategy.setMockedPostCheck(true);
-      });
-
-      before('set mocked premium', async () => {
-        await mockedMarket.setMockCollateral(seth.address, collateralAmount);
-        await mockedMarket.setMockPremium(susd.address, minPremium);
-      });
-
-      before('set mocked synthetix return', async () => {
-        await mockedSynthetix.setMockedTradeAmount(seth.address, premiumInEth);
+        await mockedStrategy.setMockedTradeAmount(minPremium, collateralAmount);
+        await susd.mint(mockedStrategy.address, minPremium);
       });
 
       it('should successfully trade', async () => {
