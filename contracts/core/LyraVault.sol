@@ -54,46 +54,37 @@ contract LyraVault is Ownable, BaseVault {
 
   /// @dev set strategy contract. This function can only be called by owner.
   function setStrategy(address _strategy) external onlyOwner {
+    if (address(strategy) != address(0)) {
+      collateralAsset.approve(address(strategy), 0);
+    }
+
     strategy = DeltaStrategy(_strategy);
+    collateralAsset.approve(_strategy, type(uint).max);
     emit StrategyUpdated(_strategy);
   }
 
   /// @dev anyone can trigger a trade
   function trade(uint strikeId) external {
     require(vaultState.roundInProgress, "round closed");
-
-    (uint collateralToAdd, uint setCollateralTo) = strategy.getRequiredCollateral(strikeId);
-
-    // open a short call position on lyra and collect premium
-    uint collateralBefore = IERC20(vaultParams.asset).balanceOf(address(this));
-    require(
-      IERC20(vaultParams.asset).transfer(address(strategy), collateralToAdd),
-      "collateral transfer to strategy failed"
-    );
+    uint collateralBefore = collateralAsset.balanceOf(address(this));
 
     // perform trade through strategy
-    (uint positionId, uint realPremium) = strategy.doTrade(strikeId, setCollateralTo, lyraRewardRecipient);
+    (uint positionId, uint premiumReceived, uint collateralAdded) = strategy.doTrade(strikeId, lyraRewardRecipient);
+    uint collateralAfter = collateralAsset.balanceOf(address(this));
 
-    uint collateralAfter = IERC20(vaultParams.asset).balanceOf(address(this));
+    // verify used amount
     uint assetUsed = collateralBefore - collateralAfter;
+    require(assetUsed <= collateralAdded, "improper collateral amount used");
 
     // update the remaining locked amount
     vaultState.lockedAmountLeft = vaultState.lockedAmountLeft - assetUsed;
 
     // todo: udpate events
-    emit Trade(msg.sender, positionId, realPremium);
+    emit Trade(msg.sender, positionId, premiumReceived);
   }
 
   function reducePosition(uint positionId) external {
     strategy.reducePosition(positionId, lyraRewardRecipient);
-  }
-
-  /// @notice settle outstanding short positions.
-  /// @dev anyone can call the function to settle outstanding expired positions
-  /// @param listingIds an array of listingId that the vault traded with in the last round.
-  function settle(uint[] memory listingIds) external {
-    // eth call options are settled in eth
-    // todo: update to Avalon interface
   }
 
   /// @dev close the current round, enable user to deposit for the next round

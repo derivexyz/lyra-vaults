@@ -11,6 +11,7 @@ import {GWAVOracle} from "@lyrafinance/core/contracts/periphery/GWAVOracle.sol";
 
 // Libraries
 import {Vault} from "../libraries/Vault.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LyraVault} from "../core/LyraVault.sol";
 import {DecimalMath} from "@lyrafinance/core/contracts/synthetix/DecimalMath.sol";
 import {SignedDecimalMath} from "@lyrafinance/core/contracts/synthetix/SignedDecimalMath.sol";
@@ -22,6 +23,7 @@ contract DeltaStrategy is VaultAdapter {
   LyraVault public immutable vault;
   OptionType public immutable optionType;
   GWAVOracle public immutable gwavOracle;
+  IERC20 public immutable collateralAsset;
 
   mapping(uint => uint) public lastTradeTimestamp;
 
@@ -62,6 +64,8 @@ contract DeltaStrategy is VaultAdapter {
 
     quoteAsset.approve(address(vault), type(uint).max);
     baseAsset.approve(address(vault), type(uint).max);
+
+    collateralAsset = _isBaseCollat() ? baseAsset : quoteAsset;
   }
 
   /**
@@ -103,11 +107,43 @@ contract DeltaStrategy is VaultAdapter {
     _clearAllActiveStrikes();
   }
 
+  function doTrade(uint strikeId, address lyraRewardRecipient)
+    external
+    onlyVault
+    returns (
+      uint positionId,
+      uint premiumReceived,
+      uint collateralToAdd
+    )
+  {
+    // validate trade
+    Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
+    require(
+      lastTradeTimestamp[strike.id] + currentStrategy.minTradeInterval <= block.timestamp,
+      "min time interval not passed"
+    );
+    require(isValidStrike(strike), "invalid strike");
+    require(_isValidVolVariance(strike.id), "vol variance exceeded");
+
+    uint setCollateralTo;
+    (collateralToAdd, setCollateralTo) = getRequiredCollateral(strike);
+
+    require(
+      collateralAsset.transferFrom(address(vault), address(this), collateralToAdd),
+      "collateral transfer from vault failed"
+    );
+
+    (positionId, premiumReceived) = sellStrike(strike, setCollateralTo, lyraRewardRecipient);
+  }
+
   /**
    * @dev convert size (denominated in standard sizes) to actual contract amount.
    */
-  function getRequiredCollateral(uint strikeId) external view returns (uint collateralToAdd, uint setCollateralTo) {
-    Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
+  function getRequiredCollateral(Strike memory strike)
+    public
+    view
+    returns (uint collateralToAdd, uint setCollateralTo)
+  {
     uint sellAmount = currentStrategy.size;
     ExchangeRateParams memory exchangeParams = getExchangeParams();
 
@@ -115,7 +151,7 @@ contract DeltaStrategy is VaultAdapter {
     uint existingAmount = 0;
     uint existingCollateral = 0;
     if (_isActiveStrike(strike.id)) {
-      OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
+      OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strike.id]))[0];
       existingCollateral = position.collateral;
       existingAmount = position.amount;
     }
@@ -145,19 +181,11 @@ contract DeltaStrategy is VaultAdapter {
    * For puts, since premium is added to collateral, basically premium amount
    * is not used from the funds that are sent
    */
-  function doTrade(
-    uint strikeId,
+  function sellStrike(
+    Strike memory strike,
     uint setCollateralTo,
     address lyraRewardRecipient
-  ) external onlyVault returns (uint, uint) {
-    Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
-    require(
-      lastTradeTimestamp[strikeId] + currentStrategy.minTradeInterval <= block.timestamp,
-      "min time interval not passed"
-    );
-    require(isValidStrike(strike), "invalid strike");
-    require(_isValidVolVariance(strikeId), "vol variance exceeded");
-
+  ) internal returns (uint, uint) {
     // get minimum expected premium based on minIv
     uint minExpectedPremium = _getPremiumLimit(strike, true);
 
@@ -175,7 +203,7 @@ contract DeltaStrategy is VaultAdapter {
         rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
       })
     );
-    lastTradeTimestamp[strikeId] = block.timestamp;
+    lastTradeTimestamp[strike.id] = block.timestamp;
 
     // update active strikes
     _addActiveStrike(strike, result.positionId);
