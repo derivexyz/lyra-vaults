@@ -6,14 +6,18 @@ import { DeltaStrategy } from '../../../typechain-types';
 import { DeltaStrategyDetailStruct } from '../../../typechain-types/DeltaStrategy';
 
 const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
+  collatBuffer: lyraUtils.toBN('1.2'),
+  collatPercent: lyraUtils.toBN('0.8'),
+  maxVolVariance: lyraUtils.toBN('0.1'),
+  gwavPeriod: 600,
   minTimeToExpiry: lyraConstants.DAY_SEC,
   maxTimeToExpiry: lyraConstants.WEEK_SEC * 2,
   targetDelta: lyraUtils.toBN('0.3'),
   maxDeltaGap: lyraUtils.toBN('0.1'),
-  minIv: lyraUtils.toBN('0.5'),
-  maxIv: lyraUtils.toBN('0.1'),
+  minVol: lyraUtils.toBN('0.5'),
+  maxVol: lyraUtils.toBN('0.1'),
   size: lyraUtils.toBN('10'),
-  minInterval: lyraConstants.HOUR_SEC,
+  minTradeInterval: lyraConstants.HOUR_SEC,
 };
 
 describe('Delta Vault Strategy', async () => {
@@ -35,7 +39,6 @@ describe('Delta Vault Strategy', async () => {
   describe('deployment', async () => {
     it('deploys with correct vault and optionMarket addresses', async () => {
       expect(await strategy.vault()).to.be.eq(ethers.constants.AddressZero);
-      expect(await strategy.optionMarket()).to.be.eq('0xCD8a1C3ba11CF5ECfa6267617243239504a98d90');
     });
   });
 
@@ -48,10 +51,10 @@ describe('Delta Vault Strategy', async () => {
       expect(newStrategy.maxTimeToExpiry).to.be.eq(defaultDeltaStrategyDetail.maxTimeToExpiry);
       expect(newStrategy.targetDelta).to.be.eq(defaultDeltaStrategyDetail.targetDelta);
       expect(newStrategy.maxDeltaGap).to.be.eq(defaultDeltaStrategyDetail.maxDeltaGap);
-      expect(newStrategy.minIv).to.be.eq(defaultDeltaStrategyDetail.minIv);
-      expect(newStrategy.maxIv).to.be.eq(defaultDeltaStrategyDetail.maxIv);
+      expect(newStrategy.minVol).to.be.eq(defaultDeltaStrategyDetail.minVol);
+      expect(newStrategy.maxVol).to.be.eq(defaultDeltaStrategyDetail.maxVol);
       expect(newStrategy.size).to.be.eq(defaultDeltaStrategyDetail.size);
-      expect(newStrategy.minInterval).to.be.eq(defaultDeltaStrategyDetail.minInterval);
+      expect(newStrategy.minTradeInterval).to.be.eq(defaultDeltaStrategyDetail.minTradeInterval);
     });
 
     it('should revert if setStrategy is not called by owner', async () => {

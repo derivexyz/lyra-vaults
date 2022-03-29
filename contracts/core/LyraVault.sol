@@ -5,15 +5,16 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {BaseVault} from "./BaseVault.sol";
-import {DeltaStrategy} from "../strategies/DeltaStrategy.sol";
 import {Vault} from "../libraries/Vault.sol";
+
+import {IStrategy} from "../interfaces/IStrategy.sol";
 
 /// @notice LyraVault help users run option-selling strategies on Lyra AMM.
 contract LyraVault is Ownable, BaseVault {
   IERC20 public immutable premiumAsset;
   IERC20 public immutable collateralAsset;
 
-  DeltaStrategy public strategy;
+  IStrategy public strategy;
   address public lyraRewardRecipient;
 
   // Amount locked for scheduled withdrawals last week;
@@ -58,7 +59,7 @@ contract LyraVault is Ownable, BaseVault {
       collateralAsset.approve(address(strategy), 0);
     }
 
-    strategy = DeltaStrategy(_strategy);
+    strategy = IStrategy(_strategy);
     collateralAsset.approve(_strategy, type(uint).max);
     emit StrategyUpdated(_strategy);
   }

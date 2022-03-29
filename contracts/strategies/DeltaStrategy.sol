@@ -5,6 +5,9 @@ pragma experimental ABIEncoderV2;
 // Hardhat
 import "hardhat/console.sol";
 
+// standard strategy interface
+import "../interfaces/IStrategy.sol";
+
 // Lyra
 import {VaultAdapter} from "@lyrafinance/core/contracts/periphery/VaultAdapter.sol";
 import {GWAVOracle} from "@lyrafinance/core/contracts/periphery/GWAVOracle.sol";
@@ -16,7 +19,7 @@ import {LyraVault} from "../core/LyraVault.sol";
 import {DecimalMath} from "@lyrafinance/core/contracts/synthetix/DecimalMath.sol";
 import {SignedDecimalMath} from "@lyrafinance/core/contracts/synthetix/SignedDecimalMath.sol";
 
-contract DeltaStrategy is VaultAdapter {
+contract DeltaStrategy is VaultAdapter, IStrategy {
   using DecimalMath for uint;
   using SignedDecimalMath for int;
 
