@@ -5,7 +5,6 @@ import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import { LyraVault, MockERC20, MockStrategy } from '../../../typechain-types';
 import { FEE_MULTIPLIER } from '../utils/constants';
-import { toBytes32 } from '../utils/synthetixUtils';
 
 describe('Unit test: Basic LyraVault flow', async () => {
   // contract instances
@@ -29,10 +28,6 @@ describe('Unit test: Basic LyraVault flow', async () => {
   const performanceFee = 2 * FEE_MULTIPLIER; // 2% fee
   const managementFee = 1 * FEE_MULTIPLIER; // 1% fee
   const initCap = parseEther('50');
-
-  // mocked key for synthetix
-  const susdKey = toBytes32('sUSD');
-  const sethKey = toBytes32('sETH');
 
   let totalDeposit: BigNumber;
 
@@ -75,8 +70,6 @@ describe('Unit test: Basic LyraVault flow', async () => {
           cap,
           asset: seth.address,
         },
-        susdKey,
-        sethKey,
       )) as LyraVault;
       const params = await vault.vaultParams();
       expect(params.asset).to.be.eq(seth.address);

@@ -1,8 +1,9 @@
-import { lyraConstants, lyraUtils } from '@lyrafinance/core';
+import { lyraConstants, lyraCore, lyraUtils } from '@lyrafinance/core';
+import { LyraGlobal } from '@lyrafinance/core/dist/test/utils/package/parseFiles';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { DeltaStrategy } from '../../../typechain-types';
+import { DeltaStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
 import { DeltaStrategyDetailStruct } from '../../../typechain-types/DeltaStrategy';
 
 const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
@@ -20,25 +21,76 @@ const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
   minTradeInterval: lyraConstants.HOUR_SEC,
 };
 
-describe('Delta Vault Strategy', async () => {
+describe('Delta Strategy integration test', async () => {
+  // local mock tokens
+  let susd: MockERC20;
+  let seth: MockERC20;
+
+  let lyraGlobal: LyraGlobal;
+  let deployer: SignerWithAddress;
   let manager: SignerWithAddress;
+  let vault: LyraVault;
   let randomUser: SignerWithAddress;
   let strategy: DeltaStrategy;
 
-  before(async () => {
+  before('assign roles', async () => {
     const addresses = await ethers.getSigners();
-    manager = addresses[0];
+    deployer = addresses[0];
+    manager = addresses[1];
     randomUser = addresses[9];
+  });
 
-    strategy = (await (await ethers.getContractFactory('DeltaStrategy')).connect(manager).deploy(
-      ethers.constants.AddressZero, // vault
-      '0xCD8a1C3ba11CF5ECfa6267617243239504a98d90', // optionMarket
-    )) as DeltaStrategy;
+  before('deploy lyra core', async () => {
+    const localTestSystem = await lyraCore.deploy(deployer, false, true);
+    lyraGlobal = lyraCore.getGlobalContracts('local');
+    await lyraCore.seed(deployer, localTestSystem);
+  });
+
+  before('deploy mock tokens', async () => {
+    const MockERC20Factory = await ethers.getContractFactory('MockERC20');
+    susd = (await MockERC20Factory.deploy('Synth USD', 'sUSD')) as MockERC20;
+    seth = (await MockERC20Factory.deploy('Synth ETH', 'sUSD')) as MockERC20;
+  });
+
+  before('deploy vault', async () => {
+    const LyraVault = await ethers.getContractFactory('LyraVault');
+
+    const cap = ethers.utils.parseEther('5000');
+    const decimals = 18;
+
+    vault = (await LyraVault.deploy(
+      susd.address,
+      manager.address, // feeRecipient,
+      86400 * 7,
+      'LyraVault Share',
+      'Lyra VS',
+      {
+        decimals,
+        cap,
+        asset: seth.address,
+      },
+    )) as LyraVault;
+  });
+
+  before('deploy strategy', async () => {
+    strategy = (await (
+      await ethers.getContractFactory('DeltaStrategy', {
+        libraries: {
+          BlackScholes: lyraGlobal.BlackScholes.address as string,
+        },
+      })
+    )
+      .connect(manager)
+      .deploy(vault.address, lyraCore.OptionType.SHORT_CALL_BASE, lyraGlobal.GWAV.address)) as DeltaStrategy;
   });
 
   describe('deployment', async () => {
+    it('initialize adapter and strategy', async () => {
+      // todo: remove this once we put adaptor
+    });
+
     it('deploys with correct vault and optionMarket addresses', async () => {
-      expect(await strategy.vault()).to.be.eq(ethers.constants.AddressZero);
+      expect(await strategy.vault()).to.be.eq(vault.address);
     });
   });
 
@@ -63,23 +115,4 @@ describe('Delta Vault Strategy', async () => {
       );
     });
   });
-
-  // describe('requestTrade', async () => {
-  //   it('should return correct size, listing id, premium', async () => {
-  //     const boardId = ethers.BigNumber.from('1');
-  //     await strategy.connect(randomUser).requestTrade(boardId);
-  //     const { listingId, size, minPremium } = await strategy.requestTrade(boardId);
-  //     expect(listingId).to.be.eq(ethers.BigNumber.from('9'));
-  //     expect(minPremium).to.be.eq(ethers.utils.parseUnits('0', 18));
-  //     expect(size).to.be.eq(ethers.utils.parseUnits('1', 18));
-  //   });
-  //   // todo: test setStrategy allowable times
-  // });
-
-  // describe('checkPostTrade', async () => {
-  //   // todo: update test case
-  //   it('should return true if ...', async () => {
-  //     expect(await strategy.checkPostTrade()).to.be.true;
-  //   });
-  // });
 });

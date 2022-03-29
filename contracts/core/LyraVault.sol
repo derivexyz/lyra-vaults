@@ -22,12 +22,6 @@ contract LyraVault is Ownable, BaseVault {
   // % of funds to be used for weekly option purchase
   uint public optionAllocation;
 
-  /// @dev Synthetix currency key for sUSD
-  bytes32 private immutable premiumCurrencyKey;
-
-  /// @dev Synthetix currency key for sETH
-  bytes32 private immutable sETHCurrencyKey;
-
   event StrategyUpdated(address strategy);
 
   event Trade(address user, uint positionId, uint premium, uint collateralUsed);
@@ -42,15 +36,10 @@ contract LyraVault is Ownable, BaseVault {
     uint _roundDuration,
     string memory _tokenName,
     string memory _tokenSymbol,
-    Vault.VaultParams memory _vaultParams,
-    bytes32 _premiumCurrencyKey,
-    bytes32 _sETHCurrencyKey
+    Vault.VaultParams memory _vaultParams
   ) BaseVault(_feeRecipient, _roundDuration, _tokenName, _tokenSymbol, _vaultParams) {
     premiumAsset = IERC20(_susd);
     collateralAsset = IERC20(_vaultParams.asset);
-
-    premiumCurrencyKey = _premiumCurrencyKey;
-    sETHCurrencyKey = _sETHCurrencyKey;
   }
 
   /// @dev set strategy contract. This function can only be called by owner.

@@ -26,7 +26,7 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
   LyraVault public immutable vault;
   OptionType public immutable optionType;
   GWAVOracle public immutable gwavOracle;
-  IERC20 public immutable collateralAsset;
+  IERC20 public collateralAsset;
 
   mapping(uint => uint) public lastTradeTimestamp;
 
@@ -64,11 +64,14 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
     vault = _vault;
     optionType = _optionType;
     gwavOracle = _gwavOracle;
+  }
 
+  function initStrategy() external onlyOwner {
     quoteAsset.approve(address(vault), type(uint).max);
     baseAsset.approve(address(vault), type(uint).max);
-
     collateralAsset = _isBaseCollat() ? baseAsset : quoteAsset;
+
+    // todo: init adapter
   }
 
   /**

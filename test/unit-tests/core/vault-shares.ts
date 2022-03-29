@@ -4,7 +4,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { LyraVault, MockERC20, MockOptionMarket, MockStrategy, MockSynthetix } from '../../../typechain-types';
-import { toBytes32 } from '../utils/synthetixUtils';
 
 describe('Unit test: share calculating for pending deposit and withdraw', async () => {
   // contract instances
@@ -28,10 +27,6 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
 
   // fix deposit amount at 1 eth
   const depositAmount = parseEther('1');
-
-  // mocked key for synthetix
-  const susdKey = toBytes32('sUSD');
-  const sethKey = toBytes32('wETH');
 
   // constants across tests
 
@@ -79,8 +74,6 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
         cap,
         asset: seth.address,
       },
-      susdKey,
-      sethKey,
     )) as LyraVault;
 
     // set strategy
@@ -91,11 +84,6 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     await susd.mint(mockedMarket.address, parseUnits('100000'));
 
     await seth.connect(anyone).mint(mockedSynthetix.address, parseEther('100'));
-  });
-
-  before('setup mocked synthetix', async () => {
-    await mockedSynthetix.setMockedKeyToAddress(susdKey, susd.address);
-    await mockedSynthetix.setMockedKeyToAddress(sethKey, seth.address);
   });
 
   describe('round 1', async () => {
