@@ -88,7 +88,7 @@ contract LyraVault is Ownable, BaseVault {
   }
 
   /// @dev close the current round, enable user to deposit for the next round
-  function closeRound() external onlyOwner {
+  function closeRound() external {
     uint104 lockAmount = vaultState.lockedAmount;
     vaultState.lastLockedAmount = lockAmount;
     vaultState.lockedAmountLeft = 0;
@@ -98,8 +98,6 @@ contract LyraVault is Ownable, BaseVault {
 
     // won't be able to close if positions are not settled
     strategy.returnFundsAndClearStrikes();
-
-    // todo: add check on whether options were settled.
 
     emit RoundClosed(vaultState.round, lockAmount);
   }
