@@ -84,11 +84,11 @@ describe('Delta Strategy integration test', async () => {
       .deploy(vault.address, lyraCore.OptionType.SHORT_CALL_BASE, lyraGlobal.GWAV.address)) as DeltaStrategy;
   });
 
-  describe('deployment', async () => {
-    it('initialize adapter and strategy', async () => {
-      // todo: remove this once we put adaptor
-    });
+  before('initialize strategy and adaptor', async () => {
+    // todo: remove this once we put everything in constructor
+  });
 
+  describe('immutables', async () => {
     it('deploys with correct vault and optionMarket addresses', async () => {
       expect(await strategy.vault()).to.be.eq(vault.address);
     });
