@@ -1,54 +1,66 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-// import {IVaultStrategy} from "../interfaces/IVaultStrategy.sol";
+import {IStrategy} from "../interfaces/IStrategy.sol";
+import {IERC20Detailed} from "../interfaces/IERC20Detailed.sol";
 
-contract MockStrategy {
-  uint public mockedListingId;
-  uint public mockedSize;
-  uint public mockedMinPremium;
+contract MockStrategy is IStrategy {
+  IERC20Detailed public collateral;
+  IERC20Detailed public premium;
 
-  bytes public mockedStrategyBytes;
+  uint public tradePremiumAmount;
+  uint public tradeCollateralAmount;
 
-  bool public isValid;
+  bool public isSettlted;
 
-  function setStrategy(bytes memory _strategyBytes) external {
-    mockedStrategyBytes = _strategyBytes;
+  uint public boardId;
+
+  function setBoard(uint _boardId) external {
+    boardId = _boardId;
   }
 
-  function setMockedTradeRequest(
-    uint _listingId,
-    uint _size,
-    uint _minPremium
+  function setMockedTradeAmount(
+    IERC20Detailed _premiumToken,
+    IERC20Detailed _collateralToken,
+    uint _premium,
+    uint _collateral
   ) public {
-    mockedListingId = _listingId;
-    mockedSize = _size;
-    mockedMinPremium = _minPremium;
+    collateral = _collateralToken;
+    premium = _premiumToken;
+
+    tradePremiumAmount = _premium;
+    tradeCollateralAmount = _collateral;
   }
 
-  function setMockedPostCheck(bool _isValid) external {
-    isValid = _isValid;
-  }
-
-  /**
-   * request trade detail according to the strategy.
-   */
-  function requestTrade()
+  function doTrade(uint, address)
     external
-    view
     returns (
-      uint listingId,
-      uint size,
-      uint minPremium
+      uint positionId,
+      uint premiumReceived,
+      uint collateralAdded
     )
   {
-    return (mockedListingId, mockedSize, mockedMinPremium);
+    // get collateral from caller
+    collateral.transferFrom(msg.sender, address(this), tradeCollateralAmount);
+
+    // transfer premium to caller
+    premium.transfer(msg.sender, premiumReceived);
+
+    return (0, premiumReceived, tradeCollateralAmount);
   }
 
-  /**
-   * @dev this should be executed after the vault execute trade on OptionMarket
-   */
-  function checkPostTrade() external view returns (bool) {
-    return isValid;
+  function reducePosition(uint, address) external {}
+
+  function setMockIsSettled(bool _isSettled) public {
+    isSettlted = _isSettled;
+  }
+
+  function returnFundsAndClearStrikes() external {
+    // return collateral and premium to msg.sender
+    uint colBalance = collateral.balanceOf(address(this));
+    collateral.transfer(msg.sender, colBalance);
+
+    uint premiumBalance = premium.balanceOf(address(this));
+    premium.transfer(msg.sender, premiumBalance);
   }
 }
