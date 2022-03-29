@@ -1,4 +1,4 @@
-import { lyraConstants, lyraEvm, lyraMarkets, TestSystemContractsType, lyraUtils } from '@lyrafinance/core';
+import { lyraConstants, lyraCore, lyraEvm, lyraUtils, TestSystemContractsType } from '@lyrafinance/core';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import chai, { expect } from 'chai';
 import { solidity } from 'ethereum-waffle';
@@ -17,8 +17,8 @@ describe('Integration Test', () => {
 
   before(async () => {
     [account] = await ethers.getSigners();
-    testSystem = await lyraMarkets.deploy(account, true);
-    await lyraMarkets.seed(account, testSystem);
+    testSystem = await lyraCore.deploy(account, true);
+    await lyraCore.seed(account, testSystem);
   });
 
   beforeEach(async () => {
@@ -44,11 +44,15 @@ describe('Integration Test', () => {
       iterations: 1,
       minTotalCost: 0,
       maxTotalCost: lyraConstants.MAX_UINT,
-      optionType: lyraMarkets.OptionType.LONG_CALL,
+      optionType: lyraCore.OptionType.LONG_CALL,
     });
 
     await lyraEvm.fastForward(lyraConstants.MONTH_SEC);
-    await testSystem.mockSNX.exchangeRates.mockLatestPrice(lyraUtils.toBN('2000'));
+    await testSystem.mockSNX.exchangeRates.setRateAndInvalid(
+      lyraUtils.toBytes32('sETH'),
+      lyraUtils.toBN('2000'),
+      false,
+    );
 
     await testSystem.optionMarket.settleExpiredBoard(boardIds[0]);
     expect(await testSystem.liquidityPool.totalOutstandingSettlements()).to.eq(lyraUtils.toBN('500'));
