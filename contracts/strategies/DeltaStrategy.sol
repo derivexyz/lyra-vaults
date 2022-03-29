@@ -10,6 +10,8 @@ import {VaultAdapter} from "@lyrafinance/core/contracts/periphery/VaultAdapter.s
 import {GWAVOracle} from "@lyrafinance/core/contracts/periphery/GWAVOracle.sol";
 
 // Libraries
+import {Vault} from "../libraries/Vault.sol";
+import {LyraVault} from "../core/LyraVault.sol";
 import {DecimalMath} from "@lyrafinance/core/contracts/synthetix/DecimalMath.sol";
 import {SignedDecimalMath} from "@lyrafinance/core/contracts/synthetix/SignedDecimalMath.sol";
 
@@ -17,7 +19,7 @@ contract DeltaStrategy is VaultAdapter {
   using DecimalMath for uint;
   using SignedDecimalMath for int;
 
-  address public immutable vault;
+  LyraVault public immutable vault;
   OptionType public immutable optionType;
   GWAVOracle public immutable gwavOracle;
 
@@ -50,7 +52,7 @@ contract DeltaStrategy is VaultAdapter {
   ///////////
 
   constructor(
-    address _vault,
+    LyraVault _vault,
     OptionType _optionType,
     GWAVOracle _gwavOracle
   ) VaultAdapter() {
@@ -58,8 +60,8 @@ contract DeltaStrategy is VaultAdapter {
     optionType = _optionType;
     gwavOracle = _gwavOracle;
 
-    quoteAsset.approve(vault, type(uint).max);
-    baseAsset.approve(vault, type(uint).max);
+    quoteAsset.approve(address(vault), type(uint).max);
+    baseAsset.approve(address(vault), type(uint).max);
   }
 
   /**
@@ -67,9 +69,10 @@ contract DeltaStrategy is VaultAdapter {
    */
   function setStrategy(DeltaStrategyDetail memory _deltaStrategy) external onlyOwner {
     //todo: add requires to params
+    // bool roundInProgress;
+    (, , , , , , , bool roundInProgress) = vault.vaultState();
+    require(!roundInProgress, "cannot change strategy if round is active");
     currentStrategy = _deltaStrategy;
-    //todo: set the round status on vault
-    // vault.startWithdrawPeriod
   }
 
   ///////////////////
@@ -95,7 +98,7 @@ contract DeltaStrategy is VaultAdapter {
       );
       quoteReceived = exchangeFromExactBase(baseBal, minQuoteExpected);
     }
-    require(quoteAsset.transfer(vault, quoteBal + quoteReceived), "failed to return funds from strategy");
+    require(quoteAsset.transfer(address(vault), quoteBal + quoteReceived), "failed to return funds from strategy");
 
     _clearAllActiveStrikes();
   }
@@ -218,10 +221,10 @@ contract DeltaStrategy is VaultAdapter {
     // return closed collateral amount
     if (_isBaseCollat()) {
       uint currentBal = baseAsset.balanceOf(address(this));
-      baseAsset.transfer(vault, currentBal);
+      baseAsset.transfer(address(vault), currentBal);
     } else {
       // quote collateral
-      quoteAsset.transfer(vault, closeAmount);
+      quoteAsset.transfer(address(vault), closeAmount);
     }
   }
 
