@@ -216,7 +216,6 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
   ) internal returns (uint, uint) {
     // get minimum expected premium based on minIv
     uint minExpectedPremium = _getPremiumLimit(strike, true);
-
     // perform trade
     TradeResult memory result = openPosition(
       TradeInputParameters({
@@ -306,7 +305,8 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
 
     uint[] memory strikeId = _toDynamic(strike.id);
     uint vol = getVols(strikeId)[0];
-    int delta = _isCall() ? getDeltas(strikeId)[0] - SignedDecimalMath.UNIT : getDeltas(strikeId)[0];
+    int callDelta = getDeltas(strikeId)[0];
+    int delta = _isCall() ? callDelta : callDelta - SignedDecimalMath.UNIT;
     uint deltaGap = _abs(currentStrategy.targetDelta - delta);
     return vol >= currentStrategy.minVol && vol <= currentStrategy.maxVol && deltaGap < currentStrategy.maxDeltaGap;
   }

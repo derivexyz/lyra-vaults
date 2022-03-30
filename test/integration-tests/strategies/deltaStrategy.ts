@@ -1,7 +1,6 @@
 import { lyraConstants, lyraCore } from '@lyrafinance/core';
 import { toBN } from '@lyrafinance/core/dist/scripts/util/web3utils';
 import { TestSystemContractsType } from '@lyrafinance/core/dist/test/utils/deployTestSystem';
-import { LyraGlobal, LyraMarket } from '@lyrafinance/core/dist/test/utils/package/parseFiles';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
@@ -16,10 +15,10 @@ const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
   gwavPeriod: 600,
   minTimeToExpiry: lyraConstants.DAY_SEC,
   maxTimeToExpiry: lyraConstants.WEEK_SEC * 2,
-  targetDelta: toBN('0.35'),
-  maxDeltaGap: toBN('0.1'),
-  minVol: toBN('0.9'), // min vol to sell
-  maxVol: toBN('1.3'), // max vol to sell
+  targetDelta: toBN('0.2'),
+  maxDeltaGap: toBN('0.05'), // accept delta from 0.15~0.25
+  minVol: toBN('0.8'), // min vol to sell. (also being used to calculate min premium)
+  maxVol: toBN('1.3'), // max vol to sell. (also being used to calculate min premium)
   size: toBN('10'),
   minTradeInterval: 600,
 };
@@ -30,8 +29,8 @@ describe('Delta Strategy integration test', async () => {
   let seth: MockERC20;
 
   let lyraTestSystem: TestSystemContractsType;
-  let lyraGlobal: LyraGlobal;
-  let lyraETHMarkets: LyraMarket;
+  // let lyraGlobal: LyraGlobal;
+  // let lyraETHMarkets: LyraMarket;
   let vault: LyraVault;
   let strategy: DeltaStrategy;
 
@@ -46,9 +45,9 @@ describe('Delta Strategy integration test', async () => {
   let boardId = BigNumber.from(0);
   const boardParameter = {
     expiresIn: lyraConstants.DAY_SEC * 7,
-    baseIV: '0.8',
-    strikePrices: ['2500', '3000', '3200', '3500'],
-    skews: ['0.9', '1', '1.1', '1.1'],
+    baseIV: '0.9',
+    strikePrices: ['2500', '3000', '3200', '3400', '3500'],
+    skews: ['1.1', '1', '1.1', '1.3', '1.3'],
   };
   const initialPoolDeposit = '1000000'; // 1m
 
@@ -62,15 +61,21 @@ describe('Delta Strategy integration test', async () => {
 
   before('deploy lyra core', async () => {
     lyraTestSystem = await lyraCore.deploy(deployer, false, true);
-    lyraGlobal = lyraCore.getGlobalContracts('local');
+    // lyraGlobal = lyraCore.getGlobalContracts('local');
 
-    lyraETHMarkets = lyraCore.getMarketContracts('local', 'sETH');
+    // lyraETHMarkets = lyraCore.getMarketContracts('local', 'sETH');
 
     await lyraCore.seed(deployer, lyraTestSystem, spotPrice, boardParameter, initialPoolDeposit);
 
     // assign test tokens
-    susd = lyraTestSystem.mockSNX.baseAsset;
-    seth = lyraTestSystem.mockSNX.quoteAsset;
+    seth = lyraTestSystem.mockSNX.baseAsset;
+    susd = lyraTestSystem.mockSNX.quoteAsset;
+
+    // add more liquidity to liquidity pool
+    // todo: remove this once we can specified pool with a higher init volume
+    // await susd.mint(deployer.address, toBN('10000000'))// 10m
+    // await susd.connect(deployer).approve(lyraTestSystem.liquidityPool.address, MAX_UINT)
+    // await lyraTestSystem.liquidityPool.connect(deployer).initiateDeposit(deployer.address, toBN('10000000'))
 
     // set boardId
     const boards = await lyraTestSystem.optionMarket.getLiveBoards();
@@ -107,7 +112,7 @@ describe('Delta Strategy integration test', async () => {
     strategy = (await (
       await ethers.getContractFactory('DeltaStrategy', {
         libraries: {
-          BlackScholes: lyraGlobal.BlackScholes.address as string,
+          BlackScholes: lyraTestSystem.blackScholes.address,
         },
       })
     )
@@ -118,14 +123,14 @@ describe('Delta Strategy integration test', async () => {
   before('initialize strategy and adaptor', async () => {
     // todo: remove this once we put everything in constructor
     await strategy.connect(manager).init(
-      lyraTestSystem.testCurve.address as string, // curve swap
-      lyraETHMarkets.OptionToken.address as string,
-      lyraETHMarkets.OptionMarket.address as string,
-      lyraETHMarkets.LiquidityPool.address as string,
-      lyraETHMarkets.ShortCollateral.address as string,
-      lyraTestSystem.synthetixAdapter.address as string,
-      lyraETHMarkets.OptionMarketPricer.address as string,
-      lyraETHMarkets.OptionGreekCache.address as string,
+      lyraTestSystem.testCurve.address, // curve swap
+      lyraTestSystem.optionToken.address,
+      lyraTestSystem.optionMarket.address,
+      lyraTestSystem.liquidityPool.address,
+      lyraTestSystem.shortCollateral.address,
+      lyraTestSystem.synthetixAdapter.address,
+      lyraTestSystem.optionMarketPricer.address,
+      lyraTestSystem.optionGreekCache.address,
       susd.address, // quote
       seth.address, // base
       lyraTestSystem.basicFeeCounter.address as string,
@@ -186,20 +191,29 @@ describe('Delta Strategy integration test', async () => {
     it('manager can start round 1', async () => {
       await vault.connect(manager).startNextRound(boardId);
     });
-    it('will not trade when vol is too low"', async () => {
-      // all consider bad strikes because vol is too low
+    it('will not trade when delta is out of range"', async () => {
       const strikes = await lyraTestSystem.optionMarket.getBoardStrikes(boardId);
-      // 2500 is bad strike (vol is 0.72)
+      // 2500 is a bad strike because delta is close to 1
       await expect(vault.connect(randomUser).trade(strikes[0])).to.be.revertedWith('invalid strike');
 
-      // 3000 is bad strike (vol is 0.8)
+      // 3000 is a bad strike because delta is close to 0.5
       await expect(vault.connect(randomUser).trade(strikes[1])).to.be.revertedWith('invalid strike');
 
-      // 3200 is good strike (vol is 0.88)
+      // 3200 is a bad strike (delta is close to 0.34)
       await expect(vault.connect(randomUser).trade(strikes[2])).to.be.revertedWith('invalid strike');
+    });
 
-      // 3500 is good strike (vol is 0.88)
-      await expect(vault.connect(randomUser).trade(strikes[3])).to.be.revertedWith('invalid strike');
+    it('will trade when delta and vol are within range', async () => {
+      const strikes = await lyraTestSystem.optionMarket.getBoardStrikes(boardId);
+      // 3400 is a good strike
+      await vault.connect(randomUser).trade(strikes[3]);
+      //todo: more checks
+    });
+
+    it('should revert when min premium < premium calculated with min vol', async () => {
+      const strikes = await lyraTestSystem.optionMarket.getBoardStrikes(boardId);
+      // 3500 is good strike with reasonable delta, but won't go through because premium will be too low.
+      await expect(vault.connect(randomUser).trade(strikes[4])).to.be.revertedWith('TotalCostOutsideOfSpecifiedBounds');
     });
   });
 });
