@@ -5,6 +5,9 @@ pragma experimental ABIEncoderV2;
 // Hardhat
 import "hardhat/console.sol";
 
+// standard strategy interface
+import "../interfaces/IStrategy.sol";
+
 // Lyra
 import {VaultAdapter} from "@lyrafinance/core/contracts/periphery/VaultAdapter.sol";
 import {GWAVOracle} from "@lyrafinance/core/contracts/periphery/GWAVOracle.sol";
@@ -16,14 +19,14 @@ import {LyraVault} from "../core/LyraVault.sol";
 import {DecimalMath} from "@lyrafinance/core/contracts/synthetix/DecimalMath.sol";
 import {SignedDecimalMath} from "@lyrafinance/core/contracts/synthetix/SignedDecimalMath.sol";
 
-contract DeltaStrategy is VaultAdapter {
+contract DeltaStrategy is VaultAdapter, IStrategy {
   using DecimalMath for uint;
   using SignedDecimalMath for int;
 
   LyraVault public immutable vault;
   OptionType public immutable optionType;
   GWAVOracle public immutable gwavOracle;
-  IERC20 public immutable collateralAsset;
+  IERC20 public collateralAsset;
 
   mapping(uint => uint) public lastTradeTimestamp;
 
@@ -61,11 +64,14 @@ contract DeltaStrategy is VaultAdapter {
     vault = _vault;
     optionType = _optionType;
     gwavOracle = _gwavOracle;
+  }
 
+  function initStrategy() external onlyOwner {
     quoteAsset.approve(address(vault), type(uint).max);
     baseAsset.approve(address(vault), type(uint).max);
-
     collateralAsset = _isBaseCollat() ? baseAsset : quoteAsset;
+
+    // todo: init adapter
   }
 
   /**

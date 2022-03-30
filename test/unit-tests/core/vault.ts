@@ -3,9 +3,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
-import { LyraVault, MockERC20, MockOptionMarket, MockStrategy, MockSynthetix } from '../../../typechain-types';
+import { LyraVault, MockERC20, MockStrategy } from '../../../typechain-types';
 import { FEE_MULTIPLIER } from '../utils/constants';
-import { toBytes32 } from '../utils/synthetixUtils';
 
 describe('Unit test: Basic LyraVault flow', async () => {
   // contract instances
@@ -13,8 +12,6 @@ describe('Unit test: Basic LyraVault flow', async () => {
 
   // mocked contracts
   let mockedStrategy: MockStrategy;
-  let mockedMarket: MockOptionMarket;
-  let mockedSynthetix: MockSynthetix;
 
   let seth: MockERC20;
   let susd: MockERC20;
@@ -32,10 +29,6 @@ describe('Unit test: Basic LyraVault flow', async () => {
   const managementFee = 1 * FEE_MULTIPLIER; // 1% fee
   const initCap = parseEther('50');
 
-  // mocked key for synthetix
-  const susdKey = toBytes32('sUSD');
-  const sethKey = toBytes32('sETH');
-
   let totalDeposit: BigNumber;
 
   // mocked premium in USD and ETH
@@ -51,29 +44,12 @@ describe('Unit test: Basic LyraVault flow', async () => {
   });
 
   before('prepare mocked contracts', async () => {
-    const MockOptionMarketFactory = await ethers.getContractFactory('MockOptionMarket');
-    mockedMarket = (await MockOptionMarketFactory.deploy()) as MockOptionMarket;
-
-    const MockStrategyFactory = await ethers.getContractFactory('MockStrategy');
-    mockedStrategy = (await MockStrategyFactory.deploy()) as MockStrategy;
-
-    const MockSynthetixFactory = await ethers.getContractFactory('MockSynthetix');
-    mockedSynthetix = (await MockSynthetixFactory.deploy()) as MockSynthetix;
-
     const MockERC20Factory = await ethers.getContractFactory('MockERC20');
     susd = (await MockERC20Factory.deploy('Synth USD', 'sUSD')) as MockERC20;
     seth = (await MockERC20Factory.deploy('Synth ETH', 'sUSD')) as MockERC20;
-  });
 
-  before('mint asset for option market and synthetix', async () => {
-    await susd.mint(mockedMarket.address, parseUnits('100000'));
-
-    await seth.connect(anyone).mint(mockedSynthetix.address, parseEther('100'));
-  });
-
-  before('setup mocked synthetix', async () => {
-    await mockedSynthetix.setMockedKeyToAddress(susdKey, susd.address);
-    await mockedSynthetix.setMockedKeyToAddress(sethKey, seth.address);
+    const MockStrategyFactory = await ethers.getContractFactory('MockStrategy');
+    mockedStrategy = (await MockStrategyFactory.deploy(seth.address, susd.address)) as MockStrategy;
   });
 
   describe('deploy', async () => {
@@ -84,10 +60,8 @@ describe('Unit test: Basic LyraVault flow', async () => {
       const decimals = 18;
 
       vault = (await LyraVault.deploy(
-        mockedMarket.address,
         susd.address,
         owner.address, // feeRecipient,
-        mockedSynthetix.address,
         86400 * 7,
         'LyraVault Share',
         'Lyra VS',
@@ -96,14 +70,11 @@ describe('Unit test: Basic LyraVault flow', async () => {
           cap,
           asset: seth.address,
         },
-        susdKey,
-        sethKey,
       )) as LyraVault;
       const params = await vault.vaultParams();
       expect(params.asset).to.be.eq(seth.address);
 
       expect(params.decimals).to.be.eq(decimals);
-      expect(await vault.optionMarket()).to.be.eq(mockedMarket.address);
 
       // view functions
       expect(await vault.decimals()).to.be.eq(decimals);
@@ -205,11 +176,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
 
   describe('trade before first round end', async () => {
     it('should revert because the first round is not started yet', async () => {
-      // set mocked asset only
-      await mockedMarket.setMockCollateral(seth.address, parseEther('1'));
-      await mockedMarket.setMockPremium(susd.address, 0);
-
-      await expect(vault.trade()).to.be.revertedWith('round closed');
+      await expect(vault.trade(0)).to.be.revertedWith('round closed');
     });
   });
 
@@ -223,7 +190,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
       await ethers.provider.send('evm_mine', []);
 
       const roundBefore = await vault.vaultState();
-      await vault.connect(owner).startNextRound();
+      await vault.connect(owner).startNextRound(0);
       const roundAfter = await vault.vaultState();
       expect(roundBefore.round).to.be.eq(1);
       expect(roundAfter.round).to.be.eq(2);
@@ -231,57 +198,18 @@ describe('Unit test: Basic LyraVault flow', async () => {
   });
 
   describe.skip('trade flow tests', async () => {
-    const size = parseUnits('1');
     const collateralAmount = parseUnits('1');
 
-    it('should revert if premium get from market is lower than strategy estimation', async () => {
-      // set request and check result
-      await mockedStrategy.setMockedTradeRequest(0, size, roundPremiumSUSD.add(1));
-
-      await mockedMarket.setMockCollateral(seth.address, collateralAmount);
-      await mockedMarket.setMockPremium(susd.address, roundPremiumSUSD);
-
-      await expect(vault.trade()).to.be.revertedWith('premium too low');
-    });
-
-    it('should revert if post trade check return false', async () => {
-      await mockedStrategy.setMockedTradeRequest(0, size, roundPremiumSUSD);
-      await mockedStrategy.setMockedPostCheck(false);
-      await expect(vault.trade()).to.be.revertedWith('bad trade');
-    });
-
     it('should successfully trade with returned amount', async () => {
-      // set request and check result
-      await mockedStrategy.setMockedTradeRequest(0, size, roundPremiumSUSD);
-      await mockedStrategy.setMockedPostCheck(true);
+      // send susdc to mocked strategy
+      await susd.mint(mockedStrategy.address, roundPremiumSUSD);
 
-      await mockedMarket.setMockCollateral(seth.address, collateralAmount);
-      await mockedMarket.setMockPremium(susd.address, roundPremiumSUSD);
-
-      // set synthetix exchange result
-      await mockedSynthetix.setMockedTradeAmount(seth.address, roundPremiumInEth);
+      await mockedStrategy.setMockedTradeAmount(roundPremiumSUSD, collateralAmount);
 
       const sethBefore = await seth.balanceOf(vault.address);
-      await vault.trade();
+      await vault.trade(0);
       const sethAfter = await seth.balanceOf(vault.address);
       expect(sethBefore.sub(collateralAmount).add(roundPremiumInEth)).to.be.eq(sethAfter);
-    });
-  });
-
-  describe.skip('settle trade', async () => {
-    const settlementPayout = parseEther('1');
-    before('set mock settle data', async () => {
-      await mockedMarket.setMockSettlement(settlementPayout);
-
-      // mint seth to mock mark
-      await seth.connect(anyone).mint(mockedMarket.address, settlementPayout);
-    });
-    it('should settle a specific listing and get back collateral (seth)', async () => {
-      const vaultBalanceBefore = await seth.balanceOf(vault.address);
-      const listingId = 0;
-      await vault.settle([listingId]);
-      const vaultBalanceAfter = await seth.balanceOf(vault.address);
-      expect(vaultBalanceAfter.sub(vaultBalanceBefore)).to.be.eq(settlementPayout);
     });
   });
 
@@ -292,7 +220,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
     });
 
     it('should revert if trying to start the next round without closing the round', async () => {
-      await expect(vault.startNextRound()).to.be.revertedWith('round opened');
+      await expect(vault.startNextRound(0)).to.be.revertedWith('round opened');
     });
 
     it('should close the current round', async () => {
@@ -300,11 +228,11 @@ describe('Unit test: Basic LyraVault flow', async () => {
     });
 
     it('should revert if trying to trade right now', async () => {
-      await expect(vault.trade()).to.be.revertedWith('round closed');
+      await expect(vault.trade(0)).to.be.revertedWith('round closed');
     });
 
     it('should revert if trying to start the next round within 24 hours from close', async () => {
-      await expect(vault.startNextRound()).to.be.revertedWith('CD');
+      await expect(vault.startNextRound(0)).to.be.revertedWith('CD');
     });
 
     it.skip('should roll into the next round and pay the recipient fees', async () => {
@@ -314,7 +242,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
       const vaultStateBefore = await vault.vaultState();
       const recipientBalanceBefore = await seth.balanceOf(feeRecipient.address);
 
-      await vault.startNextRound();
+      await vault.startNextRound(0);
 
       const vaultStateAfter = await vault.vaultState();
 

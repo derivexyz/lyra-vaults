@@ -4,7 +4,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { LyraVault, MockERC20, MockOptionMarket, MockStrategy, MockSynthetix } from '../../../typechain-types';
-import { toBytes32 } from '../utils/synthetixUtils';
 
 describe('Unit test: share calculating for pending deposit and withdraw', async () => {
   // contract instances
@@ -29,10 +28,6 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
   // fix deposit amount at 1 eth
   const depositAmount = parseEther('1');
 
-  // mocked key for synthetix
-  const susdKey = toBytes32('sUSD');
-  const sethKey = toBytes32('wETH');
-
   // constants across tests
 
   // initiate withdraw 1/4 of total shares
@@ -51,15 +46,15 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     const MockOptionMarketFactory = await ethers.getContractFactory('MockOptionMarket');
     mockedMarket = (await MockOptionMarketFactory.deploy()) as MockOptionMarket;
 
-    const MockStrategyFactory = await ethers.getContractFactory('MockStrategy');
-    mockedStrategy = (await MockStrategyFactory.deploy()) as MockStrategy;
-
     const MockSynthetixFactory = await ethers.getContractFactory('MockSynthetix');
     mockedSynthetix = (await MockSynthetixFactory.deploy()) as MockSynthetix;
 
     const MockERC20Factory = await ethers.getContractFactory('MockERC20');
     seth = (await MockERC20Factory.deploy('Synth ETH', 'sETH')) as MockERC20;
     susd = (await MockERC20Factory.deploy('Synth USD', 'sUSD')) as MockERC20;
+
+    const MockStrategyFactory = await ethers.getContractFactory('MockStrategy');
+    mockedStrategy = (await MockStrategyFactory.deploy(seth.address, susd.address)) as MockStrategy;
   });
 
   before('setup LyraVault instance, link to a mocked strategy', async () => {
@@ -69,10 +64,8 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     const decimals = 18;
 
     vault = (await LyraVaultFactory.deploy(
-      mockedMarket.address,
       susd.address,
       owner.address, // feeRecipient,
-      mockedSynthetix.address,
       roundDuration,
       'LyraVault Share',
       'Lyra VS',
@@ -81,8 +74,6 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
         cap,
         asset: seth.address,
       },
-      susdKey,
-      sethKey,
     )) as LyraVault;
 
     // set strategy
@@ -93,11 +84,6 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     await susd.mint(mockedMarket.address, parseUnits('100000'));
 
     await seth.connect(anyone).mint(mockedSynthetix.address, parseEther('100'));
-  });
-
-  before('setup mocked synthetix', async () => {
-    await mockedSynthetix.setMockedKeyToAddress(susdKey, susd.address);
-    await mockedSynthetix.setMockedKeyToAddress(sethKey, seth.address);
   });
 
   describe('round 1', async () => {
@@ -194,7 +180,8 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
         // set mocked asset only
         await mockedMarket.setMockCollateral(seth.address, parseEther('1'));
         await mockedMarket.setMockPremium(susd.address, 0);
-        await expect(vault.trade()).to.be.revertedWith('round closed');
+        const strikeIdToTrade = 0;
+        await expect(vault.trade(strikeIdToTrade)).to.be.revertedWith('round closed');
       });
     });
   });
@@ -210,7 +197,8 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
       });
       it('should be able to rollover the position', async () => {
         const roundBefore = await vault.vaultState();
-        await vault.connect(owner).startNextRound();
+        const boardId = 0;
+        await vault.connect(owner).startNextRound(boardId);
         const roundAfter = await vault.vaultState();
         expect(roundBefore.round).to.be.eq(1);
         expect(roundAfter.round).to.be.eq(2);
@@ -280,29 +268,21 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     });
 
     describe.skip('stimulate trade', async () => {
-      const size = parseUnits('1');
       const collateralAmount = parseUnits('1');
       // mock premium to 300 USD
       const minPremium = parseUnits('300');
 
       before('set mocked response from strategy', async () => {
         // set request and check result
-        await mockedStrategy.setMockedTradeRequest(0, size, minPremium);
-        await mockedStrategy.setMockedPostCheck(true);
-      });
+        await mockedStrategy.setMockedTradeAmount(minPremium, collateralAmount);
 
-      before('set mocked premium', async () => {
-        await mockedMarket.setMockCollateral(seth.address, collateralAmount);
-        await mockedMarket.setMockPremium(susd.address, minPremium);
-      });
-
-      before('set mocked synthetix return', async () => {
-        await mockedSynthetix.setMockedTradeAmount(seth.address, round3PremiumInEth);
+        await susd.mint(mockedStrategy.address, minPremium);
       });
 
       it('should successfully trade', async () => {
         const sethBefore = await seth.balanceOf(vault.address);
-        await vault.trade();
+        const strikeId = 0;
+        await vault.trade(strikeId);
         const sethAfter = await seth.balanceOf(vault.address);
         expect(sethBefore.sub(collateralAmount).add(round3PremiumInEth)).to.be.eq(sethAfter);
       });
@@ -321,13 +301,6 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
         // send seth to mock mark
         await seth.connect(anyone).mint(mockedMarket.address, settlementPayout);
       });
-      it.skip('should settle a specific listing and get back collateral (seth)', async () => {
-        const vaultBalanceBefore = await seth.balanceOf(vault.address);
-        const listingId = 0;
-        await vault.settle([listingId]);
-        const vaultBalanceAfter = await seth.balanceOf(vault.address);
-        expect(vaultBalanceAfter.sub(vaultBalanceBefore)).to.be.eq(settlementPayout);
-      });
       it('should revert if trying to completeWithdraw', async () => {
         await expect(vault.connect(depositor).completeWithdraw()).to.be.revertedWith('Round in progress');
       });
@@ -341,8 +314,8 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     before('rollover to round 3', async () => {
       await ethers.provider.send('evm_increaseTime', [86400]);
       await ethers.provider.send('evm_mine', []);
-
-      await vault.connect(owner).startNextRound();
+      const boardId = 2;
+      await vault.connect(owner).startNextRound(boardId);
       const { round } = await vault.vaultState();
       expect(round).to.be.eq(3);
     });
@@ -370,29 +343,19 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
       });
     });
     describe.skip('stimulate a trade', async () => {
-      const size = parseUnits('1');
       const collateralAmount = parseUnits('1');
       const minPremium = parseUnits('400');
       const premiumInEth = parseEther('0.1');
 
-      before('set mocked response from strategy', async () => {
+      before('set mocked strategy amount', async () => {
         // set request and check result
-        await mockedStrategy.setMockedTradeRequest(0, size, minPremium);
-        await mockedStrategy.setMockedPostCheck(true);
-      });
-
-      before('set mocked premium', async () => {
-        await mockedMarket.setMockCollateral(seth.address, collateralAmount);
-        await mockedMarket.setMockPremium(susd.address, minPremium);
-      });
-
-      before('set mocked synthetix return', async () => {
-        await mockedSynthetix.setMockedTradeAmount(seth.address, premiumInEth);
+        await mockedStrategy.setMockedTradeAmount(minPremium, collateralAmount);
+        await susd.mint(mockedStrategy.address, minPremium);
       });
 
       it('should successfully trade', async () => {
         const sethBefore = await seth.balanceOf(vault.address);
-        await vault.trade();
+        await vault.trade(0);
         const sethAfter = await seth.balanceOf(vault.address);
         expect(sethBefore.sub(collateralAmount).add(premiumInEth)).to.be.eq(sethAfter);
       });
@@ -411,13 +374,6 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
         // send seth to mock mark
         await seth.connect(anyone).mint(mockedMarket.address, settlementPayout);
       });
-      it('should settle a specific listing and get back collateral (seth)', async () => {
-        const vaultBalanceBefore = await seth.balanceOf(vault.address);
-        const listingId = 0;
-        await vault.settle([listingId]);
-        const vaultBalanceAfter = await seth.balanceOf(vault.address);
-        expect(vaultBalanceAfter.sub(vaultBalanceBefore)).to.be.eq(settlementPayout);
-      });
       it('should rollover the vault to the next round', async () => {
         await vault.closeRound();
       });
@@ -428,8 +384,8 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     before('rollover to round 4', async () => {
       await ethers.provider.send('evm_increaseTime', [86400]);
       await ethers.provider.send('evm_mine', []);
-
-      await vault.connect(owner).startNextRound();
+      const boardId = 3;
+      await vault.connect(owner).startNextRound(boardId);
     });
     it('should revert when trying to complete the withdraw, because the collateral is 0', async () => {
       await expect(vault.connect(shrimp).completeWithdraw()).to.be.revertedWith('!withdrawAmount');

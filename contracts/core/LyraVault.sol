@@ -5,15 +5,16 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {BaseVault} from "./BaseVault.sol";
-import {DeltaStrategy} from "../strategies/DeltaStrategy.sol";
 import {Vault} from "../libraries/Vault.sol";
+
+import {IStrategy} from "../interfaces/IStrategy.sol";
 
 /// @notice LyraVault help users run option-selling strategies on Lyra AMM.
 contract LyraVault is Ownable, BaseVault {
   IERC20 public immutable premiumAsset;
   IERC20 public immutable collateralAsset;
 
-  DeltaStrategy public strategy;
+  IStrategy public strategy;
   address public lyraRewardRecipient;
 
   // Amount locked for scheduled withdrawals last week;
@@ -21,15 +22,9 @@ contract LyraVault is Ownable, BaseVault {
   // % of funds to be used for weekly option purchase
   uint public optionAllocation;
 
-  /// @dev Synthetix currency key for sUSD
-  bytes32 private immutable premiumCurrencyKey;
-
-  /// @dev Synthetix currency key for sETH
-  bytes32 private immutable sETHCurrencyKey;
-
   event StrategyUpdated(address strategy);
 
-  event Trade(address user, uint positionId, uint premium);
+  event Trade(address user, uint positionId, uint premium, uint collateralUsed);
 
   event RoundStarted(uint16 roundId, uint104 lockAmount);
 
@@ -41,15 +36,10 @@ contract LyraVault is Ownable, BaseVault {
     uint _roundDuration,
     string memory _tokenName,
     string memory _tokenSymbol,
-    Vault.VaultParams memory _vaultParams,
-    bytes32 _premiumCurrencyKey,
-    bytes32 _sETHCurrencyKey
+    Vault.VaultParams memory _vaultParams
   ) BaseVault(_feeRecipient, _roundDuration, _tokenName, _tokenSymbol, _vaultParams) {
     premiumAsset = IERC20(_susd);
     collateralAsset = IERC20(_vaultParams.asset);
-
-    premiumCurrencyKey = _premiumCurrencyKey;
-    sETHCurrencyKey = _sETHCurrencyKey;
   }
 
   /// @dev set strategy contract. This function can only be called by owner.
@@ -58,7 +48,7 @@ contract LyraVault is Ownable, BaseVault {
       collateralAsset.approve(address(strategy), 0);
     }
 
-    strategy = DeltaStrategy(_strategy);
+    strategy = IStrategy(_strategy);
     collateralAsset.approve(_strategy, type(uint).max);
     emit StrategyUpdated(_strategy);
   }
@@ -66,21 +56,14 @@ contract LyraVault is Ownable, BaseVault {
   /// @dev anyone can trigger a trade
   function trade(uint strikeId) external {
     require(vaultState.roundInProgress, "round closed");
-    uint collateralBefore = collateralAsset.balanceOf(address(this));
-
     // perform trade through strategy
     (uint positionId, uint premiumReceived, uint collateralAdded) = strategy.doTrade(strikeId, lyraRewardRecipient);
-    uint collateralAfter = collateralAsset.balanceOf(address(this));
-
-    // verify used amount
-    uint assetUsed = collateralBefore - collateralAfter;
-    require(assetUsed <= collateralAdded, "improper collateral amount used");
 
     // update the remaining locked amount
-    vaultState.lockedAmountLeft = vaultState.lockedAmountLeft - assetUsed;
+    vaultState.lockedAmountLeft = vaultState.lockedAmountLeft - collateralAdded;
 
     // todo: udpate events
-    emit Trade(msg.sender, positionId, premiumReceived);
+    emit Trade(msg.sender, positionId, premiumReceived, collateralAdded);
   }
 
   /// @dev anyone close part of the position with premium made by the strategy if a position is dangerous

@@ -6,7 +6,7 @@ import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 chai.use(solidity);
 
-describe('Integration Test', () => {
+describe('Example script to setup lyra for local testnet', () => {
   let account: SignerWithAddress;
   let testSystem: TestSystemContractsType;
 
