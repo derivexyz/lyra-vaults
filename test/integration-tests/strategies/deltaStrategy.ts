@@ -17,8 +17,8 @@ const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
   maxTimeToExpiry: lyraConstants.WEEK_SEC * 2,
   targetDelta: toBN('0.2'),
   maxDeltaGap: toBN('0.05'), // accept delta from 0.15~0.25
-  minVol: toBN('0.8'), // min vol to sell. (also being used to calculate min premium)
-  maxVol: toBN('1.3'), // max vol to sell. (also being used to calculate min premium)
+  minVol: toBN('0.8'), // min vol to sell. (also used to calculate min premium for call selling vault)
+  maxVol: toBN('1.3'), // max vol to sell.
   size: toBN('10'),
   minTradeInterval: 600,
 };
@@ -70,12 +70,6 @@ describe('Delta Strategy integration test', async () => {
     // assign test tokens
     seth = lyraTestSystem.mockSNX.baseAsset;
     susd = lyraTestSystem.mockSNX.quoteAsset;
-
-    // add more liquidity to liquidity pool
-    // todo: remove this once we can specified pool with a higher init volume
-    // await susd.mint(deployer.address, toBN('10000000'))// 10m
-    // await susd.connect(deployer).approve(lyraTestSystem.liquidityPool.address, MAX_UINT)
-    // await lyraTestSystem.liquidityPool.connect(deployer).initiateDeposit(deployer.address, toBN('10000000'))
 
     // set boardId
     const boards = await lyraTestSystem.optionMarket.getLiveBoards();
