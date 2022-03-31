@@ -1,4 +1,4 @@
-import { lyraConstants, lyraCore } from '@lyrafinance/core';
+import { lyraConstants, lyraCore, lyraEvm } from '@lyrafinance/core';
 import { toBN } from '@lyrafinance/core/dist/scripts/util/web3utils';
 import { TestSystemContractsType } from '@lyrafinance/core/dist/test/utils/deployTestSystem';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -78,8 +78,7 @@ describe('Delta Strategy integration test', async () => {
     await lyraTestSystem.optionGreekCache.updateBoardCachedGreeks(boardId);
 
     // fast forward do vol gwap can work
-    await ethers.provider.send('evm_increaseTime', [600]);
-    await ethers.provider.send('evm_mine', []);
+    await lyraEvm.fastForward(600);
   });
 
   before('deploy vault', async () => {
