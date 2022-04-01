@@ -49,7 +49,7 @@ describe('Delta Strategy integration test', async () => {
     strikePrices: ['2500', '3000', '3200', '3400', '3500'],
     skews: ['1.1', '1', '1.1', '1.3', '1.3'],
   };
-  const initialPoolDeposit = toBN('1000000'); // 1m
+  const initialPoolDeposit = toBN('1500000'); // 1m
 
   before('assign roles', async () => {
     const addresses = await ethers.getSigners();
@@ -123,7 +123,7 @@ describe('Delta Strategy integration test', async () => {
 
   before('initialize strategy and adaptor', async () => {
     // todo: remove this once we put everything in constructor
-    await strategy.connect(manager).init(
+    await strategy.connect(manager).setLyraAddresses(
       lyraTestSystem.testCurve.address, // curve swap
       lyraTestSystem.optionToken.address,
       lyraTestSystem.optionMarket.address,
