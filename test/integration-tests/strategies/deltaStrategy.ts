@@ -123,7 +123,7 @@ describe('Delta Strategy integration test', async () => {
 
   before('initialize strategy and adaptor', async () => {
     // todo: remove this once we put everything in constructor
-    await strategy.connect(manager).setLyraAddresses(
+    await strategy.connect(manager).initAdapter(
       lyraTestSystem.testCurve.address, // curve swap
       lyraTestSystem.optionToken.address,
       lyraTestSystem.optionMarket.address,
