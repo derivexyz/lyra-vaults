@@ -950,17 +950,17 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz#87de7af9c231826fdd68ac7258f77c429e0e5fcf"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
-"@lyrafinance/core@^0.0.35":
-  version "0.0.35"
-  resolved "https://registry.yarnpkg.com/@lyrafinance/core/-/core-0.0.35.tgz#5cecf756be33f5e1519a330e3c30466ab8f6830f"
-  integrity sha512-YaOqf2spZjG3YdakQR3GCtXn+kKgjAw3ah/0RuhNNpCu0477ydM1q1Fvc3qACrVE+nMBt4DmyVOiX44lEYT9sg==
+"@lyrafinance/core@^0.0.37":
+  version "0.0.37"
+  resolved "https://registry.yarnpkg.com/@lyrafinance/core/-/core-0.0.37.tgz#a52c13694016aaa0eef5ea1b8117e1b756ce4233"
+  integrity sha512-bpCu1ytDZKLKm02gNg5MaFwr4Do3MkmymXAVlDliYG6f1GBLq6ZIwt+jvWVtSvung3CFCTPtUbOh/wtlRjzSVg==
   dependencies:
     "@ethersproject/abi" "^5.4.0"
     "@openzeppelin/contracts" "^4.4.1"
     "@openzeppelin/contracts-upgradeable" "^4.5.1"
     "@openzeppelin/hardhat-upgrades" "^1.14.0"
     "@typechain/hardhat" "^3.0.0"
-    hardhat-tracer "^1.1.0-rc.3"
+    hardhat-tracer "1.0.0-alpha.6"
     lodash "^4.17.21"
     stochastic "^0.0.14"
 
@@ -4682,7 +4682,7 @@ ethers@^5.0.0, ethers@^5.0.1, ethers@^5.0.2, ethers@^5.1.0:
     "@ethersproject/web" "5.4.0"
     "@ethersproject/wordlists" "5.4.0"
 
-ethers@^5.0.24, ethers@^5.6.1:
+ethers@^5.0.24:
   version "5.6.2"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-5.6.2.tgz#e75bac7f038c5e0fdde667dba62fc223924143a2"
   integrity sha512-EzGCbns24/Yluu7+ToWnMca3SXJ1Jk1BvWB7CCmVNxyOeM4LLvw2OLuIHhlkhQk1dtOcj9UMsdkxUh8RiG1dxQ==
@@ -5636,13 +5636,6 @@ hardhat-tracer@1.0.0-alpha.6:
   integrity sha512-QXKEJPaCDU0P7ZNHvFuGQoKLZ9+uma3ASAoPjhHr4CYwgIHcronVPZ7zkztRc7LhDbKFffIuoh0jEQWGgR6Neg==
   dependencies:
     ethers "^5.0.24"
-
-hardhat-tracer@^1.1.0-rc.3:
-  version "1.1.0-rc.3"
-  resolved "https://registry.yarnpkg.com/hardhat-tracer/-/hardhat-tracer-1.1.0-rc.3.tgz#b28fb471a240f57fdbdb91206a976ad5759ca249"
-  integrity sha512-UGOfwRXkdxWM66JqcyGDJfIjiDXNkqgiaomLPvILg3nppVTjxtBmddYtnvGhDrV9FE1NgWyBnP1B35NaRIKM8A==
-  dependencies:
-    ethers "^5.6.1"
 
 hardhat@^2.8.0:
   version "2.9.1"

@@ -1,7 +1,12 @@
-import { lyraConstants, lyraCore, lyraUtils } from '@lyrafinance/core';
-import { InitOverrides } from '@lyrafinance/core/dist/test/utils/deployTestSystem';
+import { getGlobalDeploys, getMarketDeploys, lyraConstants, lyraUtils, TestSystem } from '@lyrafinance/core';
+import { toBN } from '@lyrafinance/core/dist/scripts/util/web3utils';
+import { DeployOverrides } from '@lyrafinance/core/dist/test/utils/deployTestSystem';
 import { ethers } from 'ethers';
 async function main() {
+  /////////////////////////////////////
+  // Deploy Lyra market on localhost //
+  /////////////////////////////////////
+
   // 1. get local deployer and network
   const provider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
 
@@ -17,29 +22,46 @@ async function main() {
   // 2. deploy and seed market with overrides
   const exportAddresses = true;
   const enableTracer = false;
-  const overrides: InitOverrides = {
+  const overrides: DeployOverrides = {
     minCollateralParams: {
-      ...lyraCore.defaultParams.minCollateralParams,
+      ...TestSystem.defaultParams.minCollateralParams,
       minStaticBaseCollateral: lyraUtils.toBN('0.001'),
     },
   };
 
-  const localTestSystem = await lyraCore.deploy(deployer, enableTracer, exportAddresses, overrides);
-  await lyraCore.seed(deployer, localTestSystem);
+  const localTestSystem = await TestSystem.deploy(deployer, enableTracer, exportAddresses, overrides);
+  await TestSystem.seed(deployer, localTestSystem);
+
+  // 3. open position
+  await localTestSystem.optionMarket.openPosition({
+    strikeId: 1,
+    positionId: 0,
+    amount: toBN('1'),
+    setCollateralTo: toBN('0'),
+    iterations: 3,
+    optionType: TestSystem.OptionType.LONG_CALL,
+    minTotalCost: toBN('0'),
+    maxTotalCost: toBN('500'),
+  });
 
   // // 3. add new BTC market
   // let newMarketSystem = await addNewMarketSystem(deployer, localTestSystem, 'sBTC', exportAddresses)
   // await seedNewMarketSystem(deployer, localTestSystem, newMarketSystem)
 
-  // 4. get global contracts
-  const lyraGlobal = lyraCore.getGlobalContracts('local');
+  ///////////////////////////////////////////////////
+  // Interact with kovan-ovm/mainnet-ovm contracts //
+  ///////////////////////////////////////////////////
+
+  // 'local' used here as example, but can pass in 'kovan-ovm' or 'mainnet-ovm' instead of 'local'.
+  // 1. get global contracts
+  const lyraGlobal = getGlobalDeploys('local');
   console.log('contract name:', lyraGlobal.SynthetixAdapter.contractName);
   console.log('address:', lyraGlobal.SynthetixAdapter.address);
   // console.log('abi:', lyraGlobal.SynthetixAdapter.abi);
   // console.log('bytecode:', lyraGlobal.SynthetixAdapter.bytecode.slice(0, 20) + '...');
 
-  // 5. get market contracts
-  const lyraMarket = lyraCore.getMarketContracts('local', 'sETH');
+  // 2. get market contracts
+  const lyraMarket = getMarketDeploys('local', 'sETH');
   console.log('contract name:', lyraMarket.OptionMarket.contractName);
   console.log('address:', lyraMarket.OptionMarket.address);
   // console.log('abi:', lyraMarket.OptionMarket.abi);
@@ -49,14 +71,14 @@ async function main() {
     strikeId: 1,
     positionId: 0,
     iterations: 1,
-    optionType: lyraCore.OptionType.LONG_CALL,
+    optionType: TestSystem.OptionType.LONG_CALL,
     amount: lyraUtils.toBN('1'),
     setCollateralTo: lyraUtils.toBN('0'),
     minTotalCost: 0,
     maxTotalCost: lyraConstants.MAX_UINT,
   };
   const tx = await localTestSystem.optionMarket.openPosition(tradeInput);
-  console.log('Tx', tx.wait());
+  console.log('Tx', (await tx.wait()).transactionHash);
 }
 
 main()

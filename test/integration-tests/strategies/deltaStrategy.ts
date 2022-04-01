@@ -1,4 +1,4 @@
-import { lyraConstants, lyraCore, lyraEvm } from '@lyrafinance/core';
+import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/core';
 import { toBN } from '@lyrafinance/core/dist/scripts/util/web3utils';
 import { TestSystemContractsType } from '@lyrafinance/core/dist/test/utils/deployTestSystem';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -49,7 +49,7 @@ describe('Delta Strategy integration test', async () => {
     strikePrices: ['2500', '3000', '3200', '3400', '3500'],
     skews: ['1.1', '1', '1.1', '1.3', '1.3'],
   };
-  const initialPoolDeposit = '1000000'; // 1m
+  const initialPoolDeposit = toBN('1000000'); // 1m
 
   before('assign roles', async () => {
     const addresses = await ethers.getSigners();
@@ -60,16 +60,20 @@ describe('Delta Strategy integration test', async () => {
   });
 
   before('deploy lyra core', async () => {
-    lyraTestSystem = await lyraCore.deploy(deployer, false, true);
+    lyraTestSystem = await TestSystem.deploy(deployer, false, false);
     // lyraGlobal = lyraCore.getGlobalContracts('local');
 
     // lyraETHMarkets = lyraCore.getMarketContracts('local', 'sETH');
 
-    await lyraCore.seed(deployer, lyraTestSystem, spotPrice, boardParameter, initialPoolDeposit);
+    await TestSystem.seed(deployer, lyraTestSystem, {
+      initialBoard: boardParameter,
+      initialBasePrice: spotPrice,
+      initialPoolDeposit: initialPoolDeposit,
+    });
 
     // assign test tokens
-    seth = lyraTestSystem.mockSNX.baseAsset;
-    susd = lyraTestSystem.mockSNX.quoteAsset;
+    seth = lyraTestSystem.snx.baseAsset as MockERC20;
+    susd = lyraTestSystem.snx.quoteAsset as MockERC20;
 
     // set boardId
     const boards = await lyraTestSystem.optionMarket.getLiveBoards();
@@ -110,7 +114,11 @@ describe('Delta Strategy integration test', async () => {
       })
     )
       .connect(manager)
-      .deploy(vault.address, lyraCore.OptionType.SHORT_CALL_BASE, lyraTestSystem.GWAVOracle.address)) as DeltaStrategy;
+      .deploy(
+        vault.address,
+        TestSystem.OptionType.SHORT_CALL_BASE,
+        lyraTestSystem.GWAVOracle.address,
+      )) as DeltaStrategy;
   });
 
   before('initialize strategy and adaptor', async () => {
@@ -138,7 +146,7 @@ describe('Delta Strategy integration test', async () => {
   describe('check strategy setup', async () => {
     it('deploys with correct vault and optionType', async () => {
       expect(await strategy.vault()).to.be.eq(vault.address);
-      expect(await strategy.optionType()).to.be.eq(lyraCore.OptionType.SHORT_CALL_BASE);
+      expect(await strategy.optionType()).to.be.eq(TestSystem.OptionType.SHORT_CALL_BASE);
       expect(await strategy.gwavOracle()).to.be.eq(lyraTestSystem.GWAVOracle.address);
     });
   });
