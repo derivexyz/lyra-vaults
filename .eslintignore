@@ -4,6 +4,7 @@ build/
 cache/
 dist/
 lib/
+scripts/
 node_modules/
 typechain/
 typechain-types/
