@@ -293,7 +293,7 @@ describe('Delta Strategy integration test', async () => {
       const receipt = await vault.depositReceipts(randomUser.address);
       expect(receipt.amount.eq(additionalDepositAmount)).to.be.true;
     });
-    it('fastforward to a expiry', async () => {
+    it('fastforward to the expiry', async () => {
       await lyraEvm.fastForward(boardParameter.expiresIn);
     });
     it('should revert when closeRound is called before options are settled', async () => {
@@ -302,12 +302,35 @@ describe('Delta Strategy integration test', async () => {
     it('should be able to close closeRound after settlement', async () => {
       await lyraTestSystem.optionMarket.settleExpiredBoard(boardId);
 
-      // settle all positions, from 0 to highest position
+      // settle all positions, from 1 to highest position
       const totalPositions = (await lyraTestSystem.optionToken.nextId()).sub(1).toNumber();
       const idsToSettle = Array.from({ length: totalPositions }, (_, i) => i + 1); // create array of [1... totalPositions]
       await lyraTestSystem.shortCollateral.settleOptions(idsToSettle);
       await vault.closeRound();
+
+      // initiate withdraw for later test
+      await vault.connect(randomUser2).initiateWithdraw(toBN('50'));
     });
+  });
+  describe('start round 2', async () => {
+    before('create new board', async () => {
+      await TestSystem.marketActions.createBoard(lyraTestSystem, boardParameter);
+      const boards = await lyraTestSystem.optionMarket.getLiveBoards();
+      boardId = boards[0];
+    });
+    it('start the next round', async () => {
+      await lyraEvm.fastForward(lyraConstants.DAY_SEC);
+      await vault.connect(manager).startNextRound(boardId);
+    });
+    // it('should be able to complete the withdraw', async() => {
+    //   const sethBefore = await seth.balanceOf(randomUser2.address)
+
+    //   await vault.connect(randomUser2).completeWithdraw();
+
+    //   const sethAfter = await seth.balanceOf(randomUser2.address)
+
+    //   console.log(sethAfter.sub(sethBefore).toString())
+    // })
   });
 });
 

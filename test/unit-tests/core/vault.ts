@@ -154,7 +154,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
     it('should revert if trying to deposit to a 0 address', async () => {
       await expect(vault.connect(anyone).depositFor(1, ethers.constants.AddressZero)).to.be.revertedWith('!creditor');
     });
-    it('should deposit ewth into the contract', async () => {
+    it('should deposit seth into the contract', async () => {
       const initReceipt = await vault.depositReceipts(depositor.address);
 
       await seth.mint(depositor.address, depositAmount);
