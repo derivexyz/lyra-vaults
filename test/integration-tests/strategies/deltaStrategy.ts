@@ -184,10 +184,10 @@ describe('Delta Strategy integration test', async () => {
     });
     it('user should be able to deposit through vault', async () => {
       // user 1 deposits
-      await seth.connect(randomUser).approve(vault.address, toBN('50'));
+      await seth.connect(randomUser).approve(vault.address, lyraConstants.MAX_UINT);
       await vault.connect(randomUser).deposit(toBN('50'));
       // user 2 deposits
-      await seth.connect(randomUser2).approve(vault.address, toBN('50'));
+      await seth.connect(randomUser2).approve(vault.address, lyraConstants.MAX_UINT);
       await vault.connect(randomUser2).deposit(toBN('50'));
 
       const state = await vault.vaultState();
@@ -283,6 +283,30 @@ describe('Delta Strategy integration test', async () => {
     it('should revert when trying to trade the old strike', async () => {
       await lyraEvm.fastForward(600);
       await expect(vault.connect(randomUser).trade(strikes[3])).to.be.revertedWith('invalid strike');
+    });
+
+    const additionalDepositAmount = toBN('30');
+    it('can add more deposit during the round', async () => {
+      await vault.connect(randomUser).deposit(additionalDepositAmount);
+      const state = await vault.vaultState();
+      expect(state.totalPending.eq(additionalDepositAmount)).to.be.true;
+      const receipt = await vault.depositReceipts(randomUser.address);
+      expect(receipt.amount.eq(additionalDepositAmount)).to.be.true;
+    });
+    it('fastforward to a expiry', async () => {
+      await lyraEvm.fastForward(boardParameter.expiresIn);
+    });
+    it('should revert when closeRound is called before options are settled', async () => {
+      await expect(vault.closeRound()).to.be.revertedWith('cannot clear active position');
+    });
+    it('should be able to close closeRound after settlement', async () => {
+      await lyraTestSystem.optionMarket.settleExpiredBoard(boardId);
+
+      // settle all positions, from 0 to highest position
+      const totalPositions = (await lyraTestSystem.optionToken.nextId()).sub(1).toNumber();
+      const idsToSettle = Array.from({ length: totalPositions }, (_, i) => i + 1); // create array of [1... totalPositions]
+      await lyraTestSystem.shortCollateral.settleOptions(idsToSettle);
+      await vault.closeRound();
     });
   });
 });

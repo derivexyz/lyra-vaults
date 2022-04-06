@@ -329,8 +329,10 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
 
     uint[] memory strikeId = _toDynamic(strike.id);
     uint vol = getVols(strikeId)[0];
+    // console.log("vol", vol);
     int callDelta = getDeltas(strikeId)[0];
     int delta = _isCall() ? callDelta : callDelta - SignedDecimalMath.UNIT;
+    // console.log("callDelta", uint(callDelta));
     uint deltaGap = _abs(currentStrategy.targetDelta - delta);
     return vol >= currentStrategy.minVol && vol <= currentStrategy.maxVol && deltaGap < currentStrategy.maxDeltaGap;
   }
@@ -423,10 +425,11 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
   function _clearAllActiveStrikes() internal {
     if (activeStrikeIds.length != 0) {
       for (uint i = 0; i < activeStrikeIds.length; i++) {
-        OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[i]))[0];
-        // if position state is still
+        uint strikeId = activeStrikeIds[i];
+        OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
+        // revert if position state is not settled
         require(position.state != PositionState.ACTIVE, "cannot clear active position");
-        delete strikeToPositionId[i];
+        delete strikeToPositionId[strikeId];
         delete lastTradeTimestamp[i];
       }
       delete activeStrikeIds;
