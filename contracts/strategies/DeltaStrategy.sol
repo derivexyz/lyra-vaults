@@ -92,14 +92,10 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
       _baseAsset,
       _feeCounter
     );
-  }
 
-  function initStrategy() external onlyOwner {
     quoteAsset.approve(address(vault), type(uint).max);
     baseAsset.approve(address(vault), type(uint).max);
     collateralAsset = _isBaseCollat() ? baseAsset : quoteAsset;
-
-    // todo: init adapter
   }
 
   /**

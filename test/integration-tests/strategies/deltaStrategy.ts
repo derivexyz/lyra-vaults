@@ -136,7 +136,6 @@ describe('Delta Strategy integration test', async () => {
       seth.address, // base
       lyraTestSystem.basicFeeCounter.address as string,
     );
-    await strategy.connect(manager).initStrategy();
   });
 
   before('link strategy to vault', async () => {
