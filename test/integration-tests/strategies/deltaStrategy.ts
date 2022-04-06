@@ -50,7 +50,7 @@ describe('Delta Strategy integration test', async () => {
     strikePrices: ['2500', '3000', '3200', '3400', '3550'],
     skews: ['1.1', '1', '1.1', '1.3', '1.3'],
   };
-  const initialPoolDeposit = toBN('1500000'); // 1m
+  const initialPoolDeposit = toBN('1500000'); // 1.5m
 
   before('assign roles', async () => {
     const addresses = await ethers.getSigners();
@@ -251,11 +251,38 @@ describe('Delta Strategy integration test', async () => {
     it('should be able to trade again after time interval', async () => {
       await lyraEvm.fastForward(600);
       const strikeObj = await strikeIdToDetail(lyraTestSystem.optionMarket, strikes[3]);
+      const positionId = await strategy.strikeToPositionId(strikeObj.id);
+
       const [collateralToAdd] = await strategy.getRequiredCollateral(strikeObj);
       const vaultSatetBefore = await vault.vaultState();
+      const [positionBefore] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
+
       await vault.connect(randomUser).trade(strikes[3]);
+
       const vaultSatetAfter = await vault.vaultState();
       expect(vaultSatetBefore.lockedAmountLeft.sub(vaultSatetAfter.lockedAmountLeft).eq(collateralToAdd)).to.be.true;
+
+      const [positionAfter] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
+      expect(positionAfter.amount.sub(positionBefore.amount).eq(defaultDeltaStrategyDetail.size)).to.be.true;
+    });
+
+    it('should be able to trade a higher strike if spot price goes up', async () => {
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3150'), 'sETH');
+
+      // triger with new strike (3550)
+      await vault.connect(randomUser).trade(strikes[4]);
+
+      // check that active strikes are updated
+      const storedStrikeId = await strategy.activeStrikeIds(1);
+      expect(storedStrikeId.eq(strikes[4])).to.be.true;
+      const positionId = await strategy.strikeToPositionId(storedStrikeId);
+      const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
+
+      expect(position.amount.eq(defaultDeltaStrategyDetail.size)).to.be.true;
+    });
+    it('should revert when trying to trade the old strike', async () => {
+      await lyraEvm.fastForward(600);
+      await expect(vault.connect(randomUser).trade(strikes[3])).to.be.revertedWith('invalid strike');
     });
   });
 });
