@@ -215,9 +215,11 @@ describe('Delta Strategy integration test', async () => {
     it('should trade when delta and vol are within range', async () => {
       const strikeObj = await strikeIdToDetail(lyraTestSystem.optionMarket, strikes[3]);
       const [collateralToAdd] = await strategy.getRequiredCollateral(strikeObj);
-      // 3400 is a good strike
+
       const vaultSatetBefore = await vault.vaultState();
-      const strategySUDCBalance = await susd.balanceOf(strategy.address);
+      const strategySUSDBalance = await susd.balanceOf(strategy.address);
+
+      // 3400 is a good strike
       await vault.connect(randomUser).trade(strikes[3]);
 
       const strategyBalance = await seth.balanceOf(strategy.address);
@@ -227,8 +229,19 @@ describe('Delta Strategy integration test', async () => {
       expect(strategyBalance.isZero()).to.be.true;
       // check state.lockAmount left is updated
       expect(vaultSatetBefore.lockedAmountLeft.sub(vaultSatetAfter.lockedAmountLeft).eq(collateralToAdd)).to.be.true;
+      // check that we receive sUSD
+      expect(strategySUDCBalanceAfter.sub(strategySUSDBalance).gt(0)).to.be.true;
 
-      expect(strategySUDCBalanceAfter.sub(strategySUDCBalance).gt(0)).to.be.true;
+      // active strike is updated
+      const storedStrikeId = await strategy.activeStrikeIds(0);
+      expect(storedStrikeId.eq(strikes[3])).to.be.true;
+
+      // check that position size is correct
+      const positionId = await strategy.strikeToPositionId(storedStrikeId);
+      const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
+
+      expect(position.amount.eq(defaultDeltaStrategyDetail.size)).to.be.true;
+      expect(position.collateral.eq(collateralToAdd)).to.be.true;
     });
 
     it('should revert when user try to trigger another trade during cooldown', async () => {
