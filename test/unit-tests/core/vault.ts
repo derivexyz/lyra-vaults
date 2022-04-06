@@ -185,6 +185,12 @@ describe('Unit test: Basic LyraVault flow', async () => {
       totalDeposit = await seth.balanceOf(vault.address);
       await vault.connect(owner).closeRound();
     });
+    it('should revert if startNextRound is called by arbitrary user', async () => {
+      const wrongRoundId = 1000;
+      await expect(vault.connect(anyone).startNextRound(wrongRoundId)).to.be.revertedWith(
+        'Ownable: caller is not the owner',
+      );
+    });
     it('should be able to rollover the position', async () => {
       await ethers.provider.send('evm_increaseTime', [86400]);
       await ethers.provider.send('evm_mine', []);

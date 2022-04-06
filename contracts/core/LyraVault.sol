@@ -43,6 +43,7 @@ contract LyraVault is Ownable, BaseVault {
   }
 
   /// @dev set strategy contract. This function can only be called by owner.
+  /// @param _strategy new strategy contract address
   function setStrategy(address _strategy) external onlyOwner {
     if (address(strategy) != address(0)) {
       collateralAsset.approve(address(strategy), 0);
@@ -54,6 +55,7 @@ contract LyraVault is Ownable, BaseVault {
   }
 
   /// @dev anyone can trigger a trade
+  /// @param strikeId the strike id to sell
   function trade(uint strikeId) external {
     require(vaultState.roundInProgress, "round closed");
     // perform trade through strategy
@@ -67,6 +69,7 @@ contract LyraVault is Ownable, BaseVault {
   }
 
   /// @dev anyone close part of the position with premium made by the strategy if a position is dangerous
+  /// @param positionId the positiion to close
   function reducePosition(uint positionId) external {
     strategy.reducePosition(positionId, lyraRewardRecipient);
   }
@@ -87,7 +90,8 @@ contract LyraVault is Ownable, BaseVault {
   }
 
   /// @notice start the next round
-  function startNextRound(uint boardId) external {
+  /// @param boardId board id (asset + expiry) for next round.
+  function startNextRound(uint boardId) external onlyOwner {
     require(!vaultState.roundInProgress, "round opened");
     require(block.timestamp > vaultState.nextRoundReadyTimestamp, "CD");
 
@@ -103,9 +107,9 @@ contract LyraVault is Ownable, BaseVault {
     emit RoundStarted(vaultState.round, uint104(lockedBalance));
   }
 
+  /// @notice set set new address to receive Lyra trading reward on behalf of the vault
+  /// @param recipient recipient address
   function setLyraRewardRecipient(address recipient) external onlyOwner {
     lyraRewardRecipient = recipient;
   }
-
-  // need setRewardRecipient
 }
