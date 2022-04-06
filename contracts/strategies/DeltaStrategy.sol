@@ -352,9 +352,8 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
    */
   function _isValidExpiry(uint expiry) public view returns (bool isValid) {
     uint secondsToExpiry = _getSecondsToExpiry(expiry);
-    isValid = (secondsToExpiry >= currentStrategy.minTimeToExpiry && secondsToExpiry <= currentStrategy.maxTimeToExpiry)
-      ? true
-      : false;
+    isValid = (secondsToExpiry >= currentStrategy.minTimeToExpiry &&
+      secondsToExpiry <= currentStrategy.maxTimeToExpiry);
   }
 
   /////////////////////////////
