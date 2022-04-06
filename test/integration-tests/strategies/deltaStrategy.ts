@@ -46,7 +46,7 @@ describe('Delta Strategy integration test', async () => {
   const boardParameter = {
     expiresIn: lyraConstants.DAY_SEC * 7,
     baseIV: '0.9',
-    strikePrices: ['2500', '3000', '3200', '3400', '3500'],
+    strikePrices: ['2500', '3000', '3200', '3400', '3550'],
     skews: ['1.1', '1', '1.1', '1.3', '1.3'],
   };
   const initialPoolDeposit = toBN('1500000'); // 1m
@@ -203,17 +203,23 @@ describe('Delta Strategy integration test', async () => {
       await expect(vault.connect(randomUser).trade(strikes[2])).to.be.revertedWith('invalid strike');
     });
 
-    it('will trade when delta and vol are within range', async () => {
+    it('should revert when min premium < premium calculated with min vol', async () => {
+      const strikes = await lyraTestSystem.optionMarket.getBoardStrikes(boardId);
+      // 3550 is good strike with reasonable delta, but won't go through because premium will be too low.
+      await expect(vault.connect(randomUser).trade(strikes[4])).to.be.revertedWith('TotalCostOutsideOfSpecifiedBounds');
+    });
+
+    it('should trade when delta and vol are within range', async () => {
       const strikes = await lyraTestSystem.optionMarket.getBoardStrikes(boardId);
       // 3400 is a good strike
       await vault.connect(randomUser).trade(strikes[3]);
       //todo: more checks
     });
 
-    it('should revert when min premium < premium calculated with min vol', async () => {
+    it('should revert when user try to trigger another trade during cooldown', async () => {
       const strikes = await lyraTestSystem.optionMarket.getBoardStrikes(boardId);
-      // 3500 is good strike with reasonable delta, but won't go through because premium will be too low.
-      await expect(vault.connect(randomUser).trade(strikes[4])).to.be.revertedWith('TotalCostOutsideOfSpecifiedBounds');
+      // 3400 is a good strike
+      await expect(vault.connect(randomUser).trade(strikes[3])).to.be.revertedWith('min time interval not passed');
     });
   });
 });
