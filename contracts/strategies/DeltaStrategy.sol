@@ -276,7 +276,7 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
     Strike memory strike = getStrikes(_toDynamic(position.strikeId))[0];
     ExchangeRateParams memory exchangeParams = getExchangeParams();
 
-    require(strikeToPositionId[position.strikeId] != positionId, "invalid positionId");
+    require(strikeToPositionId[position.strikeId] == positionId, "invalid positionId");
 
     // only allows closing if collat < minBuffer
     uint minCollatPerAmount = _getBufferCollateral(strike.strikePrice, strike.expiry, exchangeParams.spotPrice, 1e18);

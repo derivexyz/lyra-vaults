@@ -223,12 +223,12 @@ describe('Delta Strategy integration test', async () => {
       await vault.connect(randomUser).trade(strikes[3]);
 
       const strategyBalance = await seth.balanceOf(strategy.address);
-      const vaultSatetAfter = await vault.vaultState();
+      const vaultStateAfter = await vault.vaultState();
       const strategySUDCBalanceAfter = await susd.balanceOf(strategy.address);
       // strategy shouldn't hold any seth
       expect(strategyBalance.isZero()).to.be.true;
       // check state.lockAmount left is updated
-      expect(vaultStateBefore.lockedAmountLeft.sub(vaultSatetAfter.lockedAmountLeft).eq(collateralToAdd)).to.be.true;
+      expect(vaultStateBefore.lockedAmountLeft.sub(vaultStateAfter.lockedAmountLeft).eq(collateralToAdd)).to.be.true;
       // check that we receive sUSD
       expect(strategySUDCBalanceAfter.sub(strategySUSDBalance).gt(0)).to.be.true;
 
@@ -259,8 +259,8 @@ describe('Delta Strategy integration test', async () => {
 
       await vault.connect(randomUser).trade(strikes[3]);
 
-      const vaultSatetAfter = await vault.vaultState();
-      expect(vaultStateBefore.lockedAmountLeft.sub(vaultSatetAfter.lockedAmountLeft).eq(collateralToAdd)).to.be.true;
+      const vaultStateAfter = await vault.vaultState();
+      expect(vaultStateBefore.lockedAmountLeft.sub(vaultStateAfter.lockedAmountLeft).eq(collateralToAdd)).to.be.true;
 
       const [positionAfter] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
       expect(positionAfter.amount.sub(positionBefore.amount).eq(defaultDeltaStrategyDetail.size)).to.be.true;
@@ -332,7 +332,11 @@ describe('Delta Strategy integration test', async () => {
     });
   });
   describe('start round 2', async () => {
+    let strikes: BigNumber[] = [];
     before('prepare before new round start', async () => {
+      // set price back to initial spot price
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, spotPrice, 'sETH');
+
       // initiate withdraw for later test
       await vault.connect(randomUser2).initiateWithdraw(toBN('50'));
     });
@@ -340,6 +344,8 @@ describe('Delta Strategy integration test', async () => {
       await TestSystem.marketActions.createBoard(lyraTestSystem, boardParameter);
       const boards = await lyraTestSystem.optionMarket.getLiveBoards();
       boardId = boards[0];
+
+      strikes = await lyraTestSystem.optionMarket.getBoardStrikes(boardId);
     });
     it('start the next round', async () => {
       await lyraEvm.fastForward(lyraConstants.DAY_SEC);
@@ -353,6 +359,19 @@ describe('Delta Strategy integration test', async () => {
       const sethAfter = await seth.balanceOf(randomUser2.address);
 
       expect(sethAfter.sub(sethBefore).gt(toBN('50'))).to.be.true;
+    });
+    it('should be able to trade', async () => {
+      const strategySUSDBalanceBefore = await susd.balanceOf(strategy.address);
+      // 3400 is a good strike
+      await vault.connect(randomUser).trade(strikes[3]);
+      const strategySUDCBalanceAfter = await susd.balanceOf(strategy.address);
+      expect(strategySUDCBalanceAfter.sub(strategySUSDBalanceBefore).gt(0)).to.be.true;
+    });
+    it('should revert when trying to reduce a safe position', async () => {
+      const positionId = await strategy.strikeToPositionId(strikes[3]);
+      await expect(vault.connect(randomUser).reducePosition(positionId)).to.be.revertedWith(
+        'position properly collateralized',
+      );
     });
   });
 });
