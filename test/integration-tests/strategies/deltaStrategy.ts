@@ -10,8 +10,8 @@ import { DeltaStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
 import { DeltaStrategyDetailStruct } from '../../../typechain-types/DeltaStrategy';
 
 const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
-  collatBuffer: toBN('1.2'),
-  collatPercent: toBN('0.8'),
+  collatBuffer: toBN('1.3'), // multiplier of minimum required collateral
+  collatPercent: toBN('0.4'), // percentage of full collateral
   maxVolVariance: toBN('0.1'),
   gwavPeriod: 600,
   minTimeToExpiry: lyraConstants.DAY_SEC,
@@ -372,6 +372,17 @@ describe('Delta Strategy integration test', async () => {
       await expect(vault.connect(randomUser).reducePosition(positionId)).to.be.revertedWith(
         'position properly collateralized',
       );
+
+      // we remain safe even if eth goes to 3900 (30%)
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3900'), 'sETH');
+      await expect(vault.connect(randomUser).reducePosition(positionId)).to.be.revertedWith(
+        'position properly collateralized',
+      );
+    });
+    it('@todo: fix: cannot use reduce position because delta will be out of range', async () => {
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('4000'), 'sETH');
+      const positionId = await strategy.strikeToPositionId(strikes[3]); // 3400 strike
+      await expect(vault.connect(randomUser).reducePosition(positionId)).to.be.revertedWith('delta out of range');
     });
   });
 });
