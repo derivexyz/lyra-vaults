@@ -437,11 +437,7 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
 
     int callDelta = getDeltas(_toDynamic(strikeId))[0];
 
-    if (callDelta > deltaCutoff) {
-      return true;
-    } else {
-      return false;
-    }
+    return callDelta > deltaCutoff;
   }
 
   //////////////////////////////
