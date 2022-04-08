@@ -201,6 +201,9 @@ describe('Delta Strategy integration test', async () => {
       const state = await vault.vaultState();
       expect(state.totalPending.eq(toBN('100'))).to.be.true;
     });
+    it('should revert when trying to start with invalid boardId', async () => {
+      await expect(vault.connect(manager).startNextRound(0)).to.be.revertedWith('timestamp expired');
+    });
     it('manager can start round 1', async () => {
       await vault.connect(manager).startNextRound(boardId);
     });
@@ -402,6 +405,11 @@ describe('Delta Strategy integration test', async () => {
 
     afterEach(async () => {
       await lyraEvm.restoreSnapshot(snapshot);
+    });
+
+    it('should revert when trading with old strike', async () => {
+      // strikeId 1 is the old strike from last round.
+      await expect(vault.connect(randomUser).trade(1)).to.be.revertedWith('invalid strike');
     });
 
     it('should be able to trade', async () => {

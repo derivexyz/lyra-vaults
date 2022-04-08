@@ -340,10 +340,6 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
   // Validation //
   ////////////////
 
-  function isValidBoard(Board memory board) public view returns (bool isValid) {
-    return _isValidExpiry(board.expiry);
-  }
-
   /**
    * @dev verify if the strike is valid for the strategy
    * @return isValid true if vol is withint [minVol, maxVol] and delta is within targetDelta +- maxDeltaGap

@@ -90,6 +90,6 @@
     "@typechain/hardhat": "^3.0.0",
     "dotenv": "^10.0.0",
     "hardhat-tracer": "1.0.0-alpha.6",
-    "solidity-coverage": "^0.7.17"
+    "solidity-coverage": "^0.7.20"
   }
 }
