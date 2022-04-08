@@ -70,8 +70,8 @@ contract LyraVault is Ownable, BaseVault {
 
   /// @dev anyone close part of the position with premium made by the strategy if a position is dangerous
   /// @param positionId the positiion to close
-  function reducePosition(uint positionId) external {
-    strategy.reducePosition(positionId, lyraRewardRecipient);
+  function reducePosition(uint positionId, uint closeAmount) external {
+    strategy.reducePosition(positionId, closeAmount, lyraRewardRecipient);
   }
 
   /// @dev close the current round, enable user to deposit for the next round

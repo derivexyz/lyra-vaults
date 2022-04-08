@@ -12,7 +12,11 @@ interface IStrategy {
       uint collateralAdded
     );
 
-  function reducePosition(uint positionId, address rewardRecipient) external;
+  function reducePosition(
+    uint positionId,
+    uint closeAmount,
+    address rewardRecipient
+  ) external;
 
   function returnFundsAndClearStrikes() external;
 }

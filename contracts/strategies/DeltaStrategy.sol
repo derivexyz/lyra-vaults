@@ -271,36 +271,42 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
   /**
    * @dev use premium in strategy to reduce position size if collateral ratio is out of range
    */
-  function reducePosition(uint positionId, address lyraRewardRecipient) external onlyVault {
+  function reducePosition(
+    uint positionId,
+    uint closeAmount,
+    address lyraRewardRecipient
+  ) external onlyVault {
     OptionPosition memory position = getPositions(_toDynamic(positionId))[0];
     Strike memory strike = getStrikes(_toDynamic(position.strikeId))[0];
-    ExchangeRateParams memory exchangeParams = getExchangeParams();
-
     require(strikeToPositionId[position.strikeId] == positionId, "invalid positionId");
 
     // only allows closing if collat < minBuffer
-    uint minCollatPerAmount = _getBufferCollateral(strike.strikePrice, strike.expiry, exchangeParams.spotPrice, 1e18);
     require(
-      position.collateral < minCollatPerAmount.multiplyDecimal(position.amount),
-      "position properly collateralized"
+      closeAmount <= getAllowedCloseAmount(position, strike.strikePrice, strike.expiry),
+      "amount exceeds allowed close amount"
     );
 
     // closes excess position with premium balance
-    uint closeAmount = position.amount - position.collateral.divideDecimal(minCollatPerAmount);
     uint maxExpectedPremium = _getPremiumLimit(strike, false);
-    TradeResult memory result = closePosition(
-      TradeInputParameters({
-        strikeId: position.strikeId,
-        positionId: position.positionId,
-        iterations: 3,
-        optionType: optionType,
-        amount: closeAmount,
-        setCollateralTo: position.collateral,
-        minTotalCost: type(uint).min,
-        maxTotalCost: maxExpectedPremium,
-        rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
-      })
-    );
+    TradeInputParameters memory tradeParams = TradeInputParameters({
+      strikeId: position.strikeId,
+      positionId: position.positionId,
+      iterations: 3,
+      optionType: optionType,
+      amount: closeAmount,
+      setCollateralTo: position.collateral,
+      minTotalCost: type(uint).min,
+      maxTotalCost: maxExpectedPremium,
+      rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
+    });
+
+    TradeResult memory result;
+    if (!_isOutsideDeltaCutoff(strike.id)) {
+      result = closePosition(tradeParams);
+    } else {
+      // will pay less competitive price to close position
+      result = forceClosePosition(tradeParams);
+    }
 
     require(result.totalCost <= maxExpectedPremium, "premium paid is above max expected premium");
 
@@ -312,6 +318,22 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
       // quote collateral
       quoteAsset.transfer(address(vault), closeAmount);
     }
+  }
+
+  /**
+   * @dev calculates the position amount required to stay above the buffer collateral
+   */
+  function getAllowedCloseAmount(
+    OptionPosition memory position,
+    uint strikePrice,
+    uint strikeExpiry
+  ) public view returns (uint closeAmount) {
+    ExchangeRateParams memory exchangeParams = getExchangeParams();
+    uint minCollatPerAmount = _getBufferCollateral(strikePrice, strikeExpiry, exchangeParams.spotPrice, 1e18);
+
+    closeAmount = position.collateral < minCollatPerAmount.multiplyDecimal(position.amount)
+      ? position.amount - position.collateral.divideDecimal(minCollatPerAmount)
+      : 0;
   }
 
   ////////////////
@@ -404,6 +426,22 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
     limitPremium = _isCall()
       ? minCallPremium.multiplyDecimal(currentStrategy.size)
       : minPutPremium.multiplyDecimal(currentStrategy.size);
+  }
+
+  /**
+   * @dev use latest optionMarket delta cutoff to determine whether trade delta is out of bounds
+   */
+  function _isOutsideDeltaCutoff(uint strikeId) internal view returns (bool) {
+    MarketParams memory marketParams = getMarketParams();
+    int deltaCutoff = int(DecimalMath.UNIT) - marketParams.deltaCutOff;
+
+    int callDelta = getDeltas(_toDynamic(strikeId))[0];
+
+    if (callDelta > deltaCutoff) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   //////////////////////////////
