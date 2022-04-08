@@ -472,13 +472,13 @@ describe('Delta Strategy integration test', async () => {
     });
 
     it('partially reduce position with force close if delta out of range', async () => {
-      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3800'), 'sETH');
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('4000'), 'sETH');
       const positionId = await strategy.strikeToPositionId(strikes[3]); // 3400 strike
       const preReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
 
       const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
       expect(fullCloseAmount).to.be.gt(0);
-      await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(2));
+      await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(4));
       const postReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
       expect(postReduceBal).to.be.lt(preReduceBal);
     });
