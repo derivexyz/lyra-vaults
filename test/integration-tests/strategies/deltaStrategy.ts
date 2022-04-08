@@ -207,6 +207,11 @@ describe('Delta Strategy integration test', async () => {
     it('manager can start round 1', async () => {
       await vault.connect(manager).startNextRound(boardId);
     });
+    it('should revert when trying to update strategy mid-round', async () => {
+      await expect(strategy.connect(manager).setStrategy(defaultDeltaStrategyDetail)).to.revertedWith(
+        'cannot change strategy if round is active',
+      );
+    });
     it('will not trade when delta is out of range"', async () => {
       // 2500 is a bad strike because delta is close to 1
       await expect(vault.connect(randomUser).trade(strikes[0])).to.be.revertedWith('invalid strike');
@@ -321,6 +326,9 @@ describe('Delta Strategy integration test', async () => {
     });
     it('should revert when closeRound is called before options are settled', async () => {
       await expect(vault.closeRound()).to.be.revertedWith('cannot clear active position');
+    });
+    it('should revert when returnFundsAndClearStrikes is called by non-vault address', async () => {
+      await expect(strategy.returnFundsAndClearStrikes()).to.be.revertedWith('only Vault');
     });
     it('should be able to close closeRound after settlement', async () => {
       await lyraTestSystem.optionMarket.settleExpiredBoard(boardId);

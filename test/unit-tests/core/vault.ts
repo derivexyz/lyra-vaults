@@ -266,4 +266,18 @@ describe('Unit test: Basic LyraVault flow', async () => {
       expect(recipientBalanceAfter.sub(recipientBalanceBefore)).to.be.eq(roundManagementFee.add(roundPerformanceFee));
     });
   });
+
+  describe('misc testing', async () => {
+    it('setting new strategy should reset allowance', async () => {
+      // assume we're setting the strategy to "anyone"
+      await vault.connect(owner).setStrategy(anyone.address);
+      const allowanceAfter = await seth.allowance(vault.address, mockedStrategy.address);
+      expect(allowanceAfter.isZero()).to.be.true;
+    });
+    it('owner can set lyraRewardReciepient', async () => {
+      await vault.connect(owner).setLyraRewardRecipient(feeRecipient.address);
+      const newRecipient = await vault.lyraRewardRecipient();
+      expect(newRecipient).to.be.eq(feeRecipient.address);
+    });
+  });
 });
