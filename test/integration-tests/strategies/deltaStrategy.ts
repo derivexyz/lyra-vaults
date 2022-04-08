@@ -26,7 +26,7 @@ const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
   minTradeInterval: 600,
 };
 
-describe.only('Delta Strategy integration test', async () => {
+describe('Delta Strategy integration test', async () => {
   // mocked tokens
   let susd: MockERC20;
   let seth: MockERC20;
