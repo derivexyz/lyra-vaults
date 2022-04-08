@@ -1,17 +1,19 @@
 import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/core';
 import { toBN } from '@lyrafinance/core/dist/scripts/util/web3utils';
+import { DEFAULT_PRICING_PARAMS } from '@lyrafinance/core/dist/test/utils/defaultParams';
 import { TestSystemContractsType } from '@lyrafinance/core/dist/test/utils/deployTestSystem';
 import { OptionMarket } from '@lyrafinance/core/dist/typechain-types';
+import { PricingParametersStruct } from '@lyrafinance/core/dist/typechain-types/OptionMarketViewer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import { DeltaStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
-import { DeltaStrategyDetailStruct } from '../../../typechain-types/DeltaStrategy';
+import { DeltaStrategyDetailStruct, OptionPositionStructOutput } from '../../../typechain-types/DeltaStrategy';
 
 const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
-  collatBuffer: toBN('1.3'), // multiplier of minimum required collateral
-  collatPercent: toBN('0.4'), // percentage of full collateral
+  collatBuffer: toBN('1.5'), // multiplier of minimum required collateral
+  collatPercent: toBN('0.35'), // percentage of full collateral
   maxVolVariance: toBN('0.1'),
   gwavPeriod: 600,
   minTimeToExpiry: lyraConstants.DAY_SEC,
@@ -61,7 +63,13 @@ describe('Delta Strategy integration test', async () => {
   });
 
   before('deploy lyra core', async () => {
-    lyraTestSystem = await TestSystem.deploy(deployer, false, false);
+    const pricingParams: PricingParametersStruct = {
+      ...DEFAULT_PRICING_PARAMS,
+      standardSize: toBN('10'),
+      spotPriceFeeCoefficient: toBN('0.001'),
+    };
+
+    lyraTestSystem = await TestSystem.deploy(deployer, true, false, { pricingParams });
     // lyraGlobal = lyraCore.getGlobalContracts('local');
 
     // lyraETHMarkets = lyraCore.getMarketContracts('local', 'sETH');
@@ -208,8 +216,20 @@ describe('Delta Strategy integration test', async () => {
     });
 
     it('should revert when min premium < premium calculated with min vol', async () => {
+      // significantly increasing lyra spot fees to 2% of spot to make premiums below threshold
+      let pricingParams: PricingParametersStruct = {
+        ...DEFAULT_PRICING_PARAMS,
+        standardSize: toBN('10'),
+        spotPriceFeeCoefficient: toBN('0.02'),
+      };
+      await lyraTestSystem.optionMarketPricer.setPricingParams(pricingParams);
+
       // 3550 is good strike with reasonable delta, but won't go through because premium will be too low.
       await expect(vault.connect(randomUser).trade(strikes[4])).to.be.revertedWith('TotalCostOutsideOfSpecifiedBounds');
+
+      // resetting back to normal
+      pricingParams = { ...pricingParams, spotPriceFeeCoefficient: toBN('0.001') };
+      await lyraTestSystem.optionMarketPricer.setPricingParams(pricingParams);
     });
 
     it('should trade when delta and vol are within range', async () => {
@@ -267,7 +287,7 @@ describe('Delta Strategy integration test', async () => {
     });
 
     it('should be able to trade a higher strike if spot price goes up', async () => {
-      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3150'), 'sETH');
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3125'), 'sETH');
 
       // triger with new strike (3550)
       await vault.connect(randomUser).trade(strikes[4]);
@@ -333,6 +353,12 @@ describe('Delta Strategy integration test', async () => {
   });
   describe('start round 2', async () => {
     let strikes: BigNumber[] = [];
+    let position: OptionPositionStructOutput;
+    let strikePrice: BigNumber;
+    let positionId: BigNumber;
+    let expiry: BigNumber;
+    let snapshot: number;
+    let strategySUSDBalanceBefore: BigNumber;
     before('prepare before new round start', async () => {
       // set price back to initial spot price
       await TestSystem.marketActions.mockPrice(lyraTestSystem, spotPrice, 'sETH');
@@ -347,11 +373,13 @@ describe('Delta Strategy integration test', async () => {
 
       strikes = await lyraTestSystem.optionMarket.getBoardStrikes(boardId);
     });
-    it('start the next round', async () => {
+
+    before('start the next round', async () => {
       await lyraEvm.fastForward(lyraConstants.DAY_SEC);
       await vault.connect(manager).startNextRound(boardId);
     });
-    it('should be able to complete the withdraw', async () => {
+
+    before('should be able to complete the withdraw', async () => {
       const sethBefore = await seth.balanceOf(randomUser2.address);
 
       await vault.connect(randomUser2).completeWithdraw();
@@ -360,29 +388,91 @@ describe('Delta Strategy integration test', async () => {
 
       expect(sethAfter.sub(sethBefore).gt(toBN('50'))).to.be.true;
     });
-    it('should be able to trade', async () => {
-      const strategySUSDBalanceBefore = await susd.balanceOf(strategy.address);
-      // 3400 is a good strike
+
+    beforeEach(async () => {
+      snapshot = await lyraEvm.takeSnapshot();
+
+      strategySUSDBalanceBefore = await susd.balanceOf(strategy.address);
       await vault.connect(randomUser).trade(strikes[3]);
+
+      [strikePrice, expiry] = await lyraTestSystem.optionMarket.getStrikeAndExpiry(strikes[3]);
+      positionId = await strategy.strikeToPositionId(strikes[3]);
+      position = (await lyraTestSystem.optionToken.getOptionPositions([positionId]))[0];
+    });
+
+    afterEach(async () => {
+      await lyraEvm.restoreSnapshot(snapshot);
+    });
+
+    it('should be able to trade', async () => {
+      // 3400 is a good strike
       const strategySUDCBalanceAfter = await susd.balanceOf(strategy.address);
       expect(strategySUDCBalanceAfter.sub(strategySUSDBalanceBefore).gt(0)).to.be.true;
     });
+
     it('should revert when trying to reduce a safe position', async () => {
-      const positionId = await strategy.strikeToPositionId(strikes[3]);
-      await expect(vault.connect(randomUser).reducePosition(positionId)).to.be.revertedWith(
-        'position properly collateralized',
+      let fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry);
+      expect(fullCloseAmount).to.be.eq(0);
+      await expect(vault.connect(randomUser).reducePosition(positionId, toBN('0.1'))).to.be.revertedWith(
+        'amount exceeds allowed close amount',
       );
 
-      // we remain safe even if eth goes to 3900 (30%)
-      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3900'), 'sETH');
-      await expect(vault.connect(randomUser).reducePosition(positionId)).to.be.revertedWith(
-        'position properly collateralized',
+      // we remain safe even if eth goes to 3400 (13% jump)
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3400'), 'sETH');
+
+      fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry);
+      expect(fullCloseAmount).to.be.eq(0);
+      await expect(vault.connect(randomUser).reducePosition(positionId, toBN('0.1'))).to.be.revertedWith(
+        'amount exceeds allowed close amount',
       );
     });
-    it('@todo: fix: cannot use reduce position because delta will be out of range', async () => {
-      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('4000'), 'sETH');
+
+    it('reduce full position if unsafe position + delta is in range', async () => {
+      // 20% jump
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3500'), 'sETH');
       const positionId = await strategy.strikeToPositionId(strikes[3]); // 3400 strike
-      await expect(vault.connect(randomUser).reducePosition(positionId)).to.be.revertedWith('delta out of range');
+      const preReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+
+      const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
+      expect(fullCloseAmount).to.be.gt(0);
+      await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount);
+      const postReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+      expect(postReduceBal).to.be.lt(preReduceBal);
+    });
+
+    it('partially reduce position if unsafe position + delta is in range', async () => {
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3600'), 'sETH');
+      const positionId = await strategy.strikeToPositionId(strikes[3]); // 3400 strike
+      const preReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+
+      const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
+      expect(fullCloseAmount).to.be.gt(0);
+      await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(2));
+      const postReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+      expect(postReduceBal).to.be.lt(preReduceBal);
+    });
+
+    it('revert reduce position if unsafe position + close amount too large', async () => {
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3750'), 'sETH');
+      const positionId = await strategy.strikeToPositionId(strikes[3]); // 3400 strike
+
+      const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
+      expect(fullCloseAmount).to.be.gt(0);
+      await expect(vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.mul(2))).to.be.revertedWith(
+        'amount exceeds allowed close amount',
+      );
+    });
+
+    it('partially reduce position with force close if delta out of range', async () => {
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3800'), 'sETH');
+      const positionId = await strategy.strikeToPositionId(strikes[3]); // 3400 strike
+      const preReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+
+      const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
+      expect(fullCloseAmount).to.be.gt(0);
+      await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(2));
+      const postReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+      expect(postReduceBal).to.be.lt(preReduceBal);
     });
   });
 });

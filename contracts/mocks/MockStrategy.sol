@@ -46,7 +46,11 @@ contract MockStrategy is IStrategy {
     return (0, premiumReceived, tradeCollateralAmount);
   }
 
-  function reducePosition(uint, address) external {}
+  function reducePosition(
+    uint,
+    uint,
+    address
+  ) external {}
 
   function setMockIsSettled(bool _isSettled) public {
     isSettlted = _isSettled;
