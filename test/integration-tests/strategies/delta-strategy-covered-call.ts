@@ -79,7 +79,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
     // assign test tokens
     seth = lyraTestSystem.snx.baseAsset as MockERC20;
-    susd = susd as MockERC20;
+    susd = lyraTestSystem.snx.quoteAsset as MockERC20;
 
     // set boardId
     const boards = await lyraTestSystem.optionMarket.getLiveBoards();
