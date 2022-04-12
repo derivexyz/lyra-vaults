@@ -2,7 +2,6 @@ import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/core';
 import { toBN } from '@lyrafinance/core/dist/scripts/util/web3utils';
 import { DEFAULT_PRICING_PARAMS } from '@lyrafinance/core/dist/test/utils/defaultParams';
 import { TestSystemContractsType } from '@lyrafinance/core/dist/test/utils/deployTestSystem';
-import { OptionMarket } from '@lyrafinance/core/dist/typechain-types';
 import { PricingParametersStruct } from '@lyrafinance/core/dist/typechain-types/OptionMarketViewer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
@@ -10,6 +9,7 @@ import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import { DeltaStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
 import { DeltaStrategyDetailStruct, OptionPositionStructOutput } from '../../../typechain-types/DeltaStrategy';
+import { strikeIdToDetail } from './utils';
 
 const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
   collatBuffer: toBN('1.5'), // multiplier of minimum required collateral
@@ -26,7 +26,7 @@ const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
   minTradeInterval: 600,
 };
 
-describe('Delta Strategy integration test', async () => {
+describe('Covered Call Delta Strategy integration test', async () => {
   // mocked tokens
   let susd: MockERC20;
   let seth: MockERC20;
@@ -70,9 +70,6 @@ describe('Delta Strategy integration test', async () => {
     };
 
     lyraTestSystem = await TestSystem.deploy(deployer, true, false, { pricingParams });
-    // lyraGlobal = lyraCore.getGlobalContracts('local');
-
-    // lyraETHMarkets = lyraCore.getMarketContracts('local', 'sETH');
 
     await TestSystem.seed(deployer, lyraTestSystem, {
       initialBoard: boardParameter,
@@ -82,7 +79,7 @@ describe('Delta Strategy integration test', async () => {
 
     // assign test tokens
     seth = lyraTestSystem.snx.baseAsset as MockERC20;
-    susd = lyraTestSystem.snx.quoteAsset as MockERC20;
+    susd = susd as MockERC20;
 
     // set boardId
     const boards = await lyraTestSystem.optionMarket.getLiveBoards();
@@ -343,7 +340,7 @@ describe('Delta Strategy integration test', async () => {
       const ethInStrategyBefore = await seth.balanceOf(strategy.address);
       const susdInStrategyBefore = await susd.balanceOf(strategy.address);
 
-      // collateral should be back in the vault after settlement
+      // collateral should be back in the strategy after settlement
       expect(ethInStrategyBefore.gt(0)).to.be.true;
       // profit are kept as quote asset in the strategy
       expect(susdInStrategyBefore.gt(0)).to.be.true;
@@ -446,32 +443,28 @@ describe('Delta Strategy integration test', async () => {
     it('reduce full position if unsafe position + delta is in range', async () => {
       // 20% jump
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3500'), 'sETH');
-      const positionId = await strategy.strikeToPositionId(strikes[3]); // 3400 strike
-      const preReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+      const preReduceBal = await susd.balanceOf(strategy.address);
 
       const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
       expect(fullCloseAmount).to.be.gt(0);
       await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount);
-      const postReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+      const postReduceBal = await susd.balanceOf(strategy.address);
       expect(postReduceBal).to.be.lt(preReduceBal);
     });
 
     it('partially reduce position if unsafe position + delta is in range', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3600'), 'sETH');
-      const positionId = await strategy.strikeToPositionId(strikes[3]); // 3400 strike
-      const preReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+      const preReduceBal = await susd.balanceOf(strategy.address);
 
       const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
       expect(fullCloseAmount).to.be.gt(0);
       await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(2));
-      const postReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+      const postReduceBal = await susd.balanceOf(strategy.address);
       expect(postReduceBal).to.be.lt(preReduceBal);
     });
 
     it('revert reduce position if unsafe position + close amount too large', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3750'), 'sETH');
-      const positionId = await strategy.strikeToPositionId(strikes[3]); // 3400 strike
-
       const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
       expect(fullCloseAmount).to.be.gt(0);
       await expect(vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.mul(2))).to.be.revertedWith(
@@ -481,25 +474,13 @@ describe('Delta Strategy integration test', async () => {
 
     it('partially reduce position with force close if delta out of range', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('4000'), 'sETH');
-      const positionId = await strategy.strikeToPositionId(strikes[3]); // 3400 strike
-      const preReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+      const preReduceBal = await susd.balanceOf(strategy.address);
 
       const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
       expect(fullCloseAmount).to.be.gt(0);
       await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(4));
-      const postReduceBal = await lyraTestSystem.snx.quoteAsset.balanceOf(strategy.address);
+      const postReduceBal = await susd.balanceOf(strategy.address);
       expect(postReduceBal).to.be.lt(preReduceBal);
     });
   });
 });
-
-async function strikeIdToDetail(optionMarket: OptionMarket, strikeId: BigNumber) {
-  const [strike, board] = await optionMarket.getStrikeAndBoard(strikeId);
-  return {
-    id: strike.id,
-    expiry: board.expiry,
-    strikePrice: strike.strikePrice,
-    skew: strike.skew,
-    boardIv: board.iv,
-  };
-}

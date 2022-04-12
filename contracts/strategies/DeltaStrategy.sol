@@ -429,11 +429,8 @@ contract DeltaStrategy is VaultAdapter, IStrategy {
    */
   function _isOutsideDeltaCutoff(uint strikeId) internal view returns (bool) {
     MarketParams memory marketParams = getMarketParams();
-    int deltaCutoff = int(DecimalMath.UNIT) - marketParams.deltaCutOff;
-
     int callDelta = getDeltas(_toDynamic(strikeId))[0];
-
-    return callDelta > deltaCutoff;
+    return callDelta > (int(DecimalMath.UNIT) - marketParams.deltaCutOff) || callDelta < marketParams.deltaCutOff;
   }
 
   //////////////////////////////
