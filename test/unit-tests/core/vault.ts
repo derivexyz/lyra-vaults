@@ -49,7 +49,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
     seth = (await MockERC20Factory.deploy('Synth ETH', 'sUSD')) as MockERC20;
 
     const MockStrategyFactory = await ethers.getContractFactory('MockStrategy');
-    mockedStrategy = (await MockStrategyFactory.deploy(seth.address, susd.address)) as MockStrategy;
+    mockedStrategy = (await MockStrategyFactory.deploy(susd.address, seth.address)) as MockStrategy;
   });
 
   describe('deploy', async () => {
@@ -203,19 +203,15 @@ describe('Unit test: Basic LyraVault flow', async () => {
     });
   });
 
-  describe.skip('trade flow tests', async () => {
+  describe('trade flow tests', async () => {
     const collateralAmount = parseUnits('1');
 
-    it('should successfully trade with returned amount', async () => {
-      // send susdc to mocked strategy
-      await susd.mint(mockedStrategy.address, roundPremiumSUSD);
-
+    it('should successfully trade with mocked amount', async () => {
       await mockedStrategy.setMockedTradeAmount(roundPremiumSUSD, collateralAmount);
-
       const sethBefore = await seth.balanceOf(vault.address);
       await vault.trade(0);
       const sethAfter = await seth.balanceOf(vault.address);
-      expect(sethBefore.sub(collateralAmount).add(roundPremiumInEth)).to.be.eq(sethAfter);
+      expect(sethBefore.sub(sethAfter)).to.be.eq(collateralAmount);
     });
   });
 
@@ -230,6 +226,9 @@ describe('Unit test: Basic LyraVault flow', async () => {
     });
 
     it('should close the current round', async () => {
+      // stimulate settlement: mint eth to strategy as premium
+      await seth.mint(mockedStrategy.address, roundPremiumInEth);
+
       await vault.closeRound();
     });
 
@@ -241,7 +240,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
       await expect(vault.startNextRound(0)).to.be.revertedWith('CD');
     });
 
-    it.skip('should roll into the next round and pay the recipient fees', async () => {
+    it('should roll into the next round and pay the recipient fees', async () => {
       await ethers.provider.send('evm_increaseTime', [86400]);
       await ethers.provider.send('evm_mine', []);
 

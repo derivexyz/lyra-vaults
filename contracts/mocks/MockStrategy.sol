@@ -39,10 +39,6 @@ contract MockStrategy is IStrategy {
   {
     // get collateral from caller
     collateral.transferFrom(msg.sender, address(this), tradeCollateralAmount);
-
-    // transfer premium to caller
-    premium.transfer(msg.sender, premiumReceived);
-
     return (0, premiumReceived, tradeCollateralAmount);
   }
 
