@@ -499,7 +499,9 @@ describe('Covered Call Delta Strategy integration test', async () => {
       const [positionAfter] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
       expect(positionAfter.state).to.be.eq(PositionState.LIQUIDATED);
     });
-    it('fastforward to the expiry and settle options', async () => {
+
+    // don't need to settle options as optionPosition.status = LIQUIDATED
+    it.skip('fastforward to the expiry and settle options', async () => {
       // @notice: the shortCollateral contract won't have enough seth to pay out (settlement) after liquidation.
       //          so we need to top it up.
       await seth.mint(lyraTestSystem.shortCollateral.address, toBN('10'));
