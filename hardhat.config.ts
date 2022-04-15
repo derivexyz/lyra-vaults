@@ -62,6 +62,6 @@ export default {
     apiKey: etherscanKey,
   },
   gasReporter: {
-    enabled: false,
+    enabled: process.env.REPORT_GAS ? true : false,
   },
 };

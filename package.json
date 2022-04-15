@@ -11,8 +11,8 @@
     "compile": "hardhat compile",
     "compile:ovm": "hardhat compile --network local-ovm",
     "build": "yarn clean && yarn compile",
-    "test": "hardhat test",
-    "coverage": "npx hardhat coverage",
+    "test": "yarn hardhat test",
+    "coverage": "yarn hardhat coverage",
     "deploy:wait": "wait-port 8545 && wait-port 9545 && yarn deployAndSeed",
     "deployTest": "hardhat run scripts/deployTest.ts",
     "seedTest": "hardhat run scripts/seedTest.ts",
@@ -29,7 +29,7 @@
     "prettier:json:md": "prettier --config .prettierrc --write \"**/*.{json,md}\"",
     "prettier": "yarn prettier:sol && yarn prettier:ts",
     "size": "hardhat size-contracts",
-    "gas-report": "REPORT_GAS=true npm run test"
+    "gas-report": "REPORT_GAS=true yarn hardhat test"
   },
   "author": "",
   "license": "ISC",
@@ -53,7 +53,7 @@
     "ethers": "^5.1.0",
     "hardhat": "^2.8.0",
     "hardhat-contract-sizer": "^2.0.3",
-    "hardhat-gas-reporter": "^1.0.4",
+    "hardhat-gas-reporter": "^1.0.8",
     "husky": "4.3.8",
     "lint-staged": "^10.5.4",
     "mathjs": "^9.3.0",
