@@ -1,5 +1,5 @@
 import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/core';
-import { toBN } from '@lyrafinance/core/dist/scripts/util/web3utils';
+import { PositionState, toBN } from '@lyrafinance/core/dist/scripts/util/web3utils';
 import { DEFAULT_PRICING_PARAMS } from '@lyrafinance/core/dist/test/utils/defaultParams';
 import { TestSystemContractsType } from '@lyrafinance/core/dist/test/utils/deployTestSystem';
 import { PricingParametersStruct } from '@lyrafinance/core/dist/typechain-types/OptionMarketViewer';
@@ -348,7 +348,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
       await vault.closeRound();
 
       const susdInStrategyAfter = await susd.balanceOf(strategy.address);
-      const ethdInStrategyAfter = await susd.balanceOf(strategy.address);
+      const ethdInStrategyAfter = await seth.balanceOf(strategy.address);
       const ethInValutAfter = await seth.balanceOf(vault.address);
 
       // strategy should be empty after close round
@@ -397,15 +397,20 @@ describe('Covered Call Delta Strategy integration test', async () => {
       expect(sethAfter.sub(sethBefore).gt(toBN('50'))).to.be.true;
     });
 
-    beforeEach(async () => {
-      snapshot = await lyraEvm.takeSnapshot();
-
+    before('make a trade', async () => {
       strategySUSDBalanceBefore = await susd.balanceOf(strategy.address);
       await vault.connect(randomUser).trade(strikes[3]);
 
       [strikePrice, expiry] = await lyraTestSystem.optionMarket.getStrikeAndExpiry(strikes[3]);
       positionId = await strategy.strikeToPositionId(strikes[3]);
       position = (await lyraTestSystem.optionToken.getOptionPositions([positionId]))[0];
+
+      const strategySUDCBalanceAfter = await susd.balanceOf(strategy.address);
+      expect(strategySUDCBalanceAfter.sub(strategySUSDBalanceBefore).gt(0)).to.be.true;
+    });
+
+    beforeEach(async () => {
+      snapshot = await lyraEvm.takeSnapshot();
     });
 
     afterEach(async () => {
@@ -415,12 +420,6 @@ describe('Covered Call Delta Strategy integration test', async () => {
     it('should revert when trading with old strike', async () => {
       // strikeId 1 is the old strike from last round.
       await expect(vault.connect(randomUser).trade(1)).to.be.revertedWith('invalid strike');
-    });
-
-    it('should be able to trade', async () => {
-      // 3400 is a good strike
-      const strategySUDCBalanceAfter = await susd.balanceOf(strategy.address);
-      expect(strategySUDCBalanceAfter.sub(strategySUSDBalanceBefore).gt(0)).to.be.true;
     });
 
     it('should revert when trying to reduce a safe position', async () => {
@@ -481,6 +480,59 @@ describe('Covered Call Delta Strategy integration test', async () => {
       await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(4));
       const postReduceBal = await susd.balanceOf(strategy.address);
       expect(postReduceBal).to.be.lt(preReduceBal);
+    });
+  });
+  describe('end round2: assuming position got liquidated', async () => {
+    let strikes: BigNumber[];
+    let positionId: BigNumber;
+    before('set parameters', async () => {
+      strikes = await lyraTestSystem.optionMarket.getBoardStrikes(boardId);
+
+      positionId = await strategy.strikeToPositionId(strikes[3]);
+    });
+    it('liquidating position ', async () => {
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('4300'), 'sETH');
+      const [positionBefore] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
+      expect(positionBefore.state).to.be.eq(PositionState.ACTIVE);
+      await lyraTestSystem.optionMarket.connect(randomUser).liquidatePosition(positionId, randomUser.address);
+
+      const [positionAfter] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
+      expect(positionAfter.state).to.be.eq(PositionState.LIQUIDATED);
+    });
+
+    // don't need to settle options as optionPosition.status = LIQUIDATED
+    it.skip('fastforward to the expiry and settle options', async () => {
+      // @notice: the shortCollateral contract won't have enough seth to pay out (settlement) after liquidation.
+      //          so we need to top it up.
+      await seth.mint(lyraTestSystem.shortCollateral.address, toBN('10'));
+
+      await lyraEvm.fastForward(boardParameter.expiresIn);
+      await lyraTestSystem.optionMarket.settleExpiredBoard(boardId);
+      await lyraTestSystem.shortCollateral.settleOptions([positionId]);
+    });
+
+    it('should be able to close closeRound after settlement', async () => {
+      const ethInVaultBefore = await seth.balanceOf(vault.address);
+      const ethInStrategyBefore = await seth.balanceOf(strategy.address);
+      const susdInStrategyBefore = await susd.balanceOf(strategy.address);
+
+      // collateral should be back in the strategy after settlement
+      expect(ethInStrategyBefore.gt(0)).to.be.true;
+      // profit are kept as quote asset in the strategy
+      expect(susdInStrategyBefore.gt(0)).to.be.true;
+
+      await vault.closeRound();
+
+      const susdInStrategyAfter = await susd.balanceOf(strategy.address);
+      const ethdInStrategyAfter = await seth.balanceOf(strategy.address);
+      const ethInValutAfter = await seth.balanceOf(vault.address);
+
+      // strategy should be empty after close round
+      expect(susdInStrategyAfter.isZero()).to.be.true;
+      expect(ethdInStrategyAfter.isZero()).to.be.true;
+
+      // the vault should get higher than the amount get from settlement, because of the premium
+      expect(ethInValutAfter.sub(ethInVaultBefore).gt(ethInStrategyBefore));
     });
   });
 });
