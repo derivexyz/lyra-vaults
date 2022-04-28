@@ -197,7 +197,7 @@ contract StrategyBase is VaultAdapter {
   function _getPremiumLimit(Strike memory strike, bool isMin) internal view returns (uint limitPremium) {
     ExchangeRateParams memory exchangeParams = getExchangeParams();
     uint limitVol = isMin ? baseStrategy.minVol : baseStrategy.maxVol;
-    (uint minCallPremium, uint minPutPremium) = getPurePremium(
+    (uint callPremium, uint putPremium) = getPurePremium(
       _getSecondsToExpiry(strike.expiry),
       limitVol,
       exchangeParams.spotPrice,
@@ -205,8 +205,8 @@ contract StrategyBase is VaultAdapter {
     );
 
     limitPremium = _isCall()
-      ? minCallPremium.multiplyDecimal(baseStrategy.size)
-      : minPutPremium.multiplyDecimal(baseStrategy.size);
+      ? callPremium.multiplyDecimal(baseStrategy.size)
+      : putPremium.multiplyDecimal(baseStrategy.size);
   }
 
   /**
@@ -270,7 +270,7 @@ contract StrategyBase is VaultAdapter {
   }
 
   function _isCall() internal view returns (bool isCall) {
-    isCall = (optionType == OptionType.SHORT_PUT_QUOTE) ? false : true;
+    isCall = (optionType == OptionType.SHORT_PUT_QUOTE || optionType == OptionType.LONG_PUT) ? false : true;
   }
 
   function _getSecondsToExpiry(uint expiry) internal view returns (uint) {

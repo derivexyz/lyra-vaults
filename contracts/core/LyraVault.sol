@@ -24,7 +24,7 @@ contract LyraVault is Ownable, BaseVault {
 
   event StrategyUpdated(address strategy);
 
-  event Trade(address user, uint positionId, uint premium, uint collateralUsed);
+  event Trade(address user, uint positionId, uint premium, uint capitalUsed);
 
   event RoundStarted(uint16 roundId, uint104 lockAmount);
 
@@ -59,13 +59,13 @@ contract LyraVault is Ownable, BaseVault {
   function trade(uint strikeId) external {
     require(vaultState.roundInProgress, "round closed");
     // perform trade through strategy
-    (uint positionId, uint premiumReceived, uint collateralAdded) = strategy.doTrade(strikeId, lyraRewardRecipient);
+    (uint positionId, uint premiumReceived, uint capitalUsed) = strategy.doTrade(strikeId, lyraRewardRecipient);
 
     // update the remaining locked amount
-    vaultState.lockedAmountLeft = vaultState.lockedAmountLeft - collateralAdded;
+    vaultState.lockedAmountLeft = vaultState.lockedAmountLeft - capitalUsed;
 
     // todo: udpate events
-    emit Trade(msg.sender, positionId, premiumReceived, collateralAdded);
+    emit Trade(msg.sender, positionId, premiumReceived, capitalUsed);
   }
 
   /// @dev anyone close part of the position with premium made by the strategy if a position is dangerous
