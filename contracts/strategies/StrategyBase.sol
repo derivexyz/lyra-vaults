@@ -52,6 +52,11 @@ contract StrategyBase is VaultAdapter {
   // ADMIN //
   ///////////
 
+  modifier onlyVault() virtual {
+    require(msg.sender == address(vault), "only Vault");
+    _;
+  }
+
   constructor(
     LyraVault _vault,
     OptionType _optionType,

@@ -53,36 +53,6 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   }
 
   /**
-   * @notice sell a fix aomunt of options and collect premium
-   * @dev the vault should pass in a strike id, and the strategy would verify if the strike is valid on-chain.
-   * @param strikeId lyra strikeId to trade
-   * @param lyraRewardRecipient address to receive trading reward. This need to be whitelisted
-   * @return positionId
-   * @return premiumReceived
-   */
-  function doTrade(uint strikeId, address lyraRewardRecipient)
-    external
-    onlyVault
-    returns (
-      uint positionId,
-      uint premiumReceived,
-      uint collateralToAdd
-    )
-  {
-    // validate trade
-    require(
-      lastTradeTimestamp[strikeId] + extendedStrategy.minTradeInterval <= block.timestamp,
-      "min time interval not passed"
-    );
-    require(_isValidVolVariance(strikeId), "vol variance exceeded");
-
-    Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
-    require(isValidStrike(strike), "invalid strike");
-
-    (positionId, premiumReceived) = _buyStrike(strike, lyraRewardRecipient);
-  }
-
-  /**
    * @dev set the board id that will be traded for the next round
    * @param boardId lyra board Id.
    */
@@ -99,6 +69,48 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
 
     // keep internal storage data on old strikes and positions ids
     _clearAllActiveStrikes();
+  }
+
+  /**
+   * @notice sell a fix aomunt of options and collect premium
+   * @dev the vault should pass in a strike id, and the strategy would verify if the strike is valid on-chain.
+   * @param strikeId lyra strikeId to trade
+   * @param lyraRewardRecipient address to receive trading reward. This need to be whitelisted
+   * @return positionId
+   * @return premiumPayed
+   * @return collateralToAdd this value will always be 0 for long strategy
+   */
+  function doTrade(uint strikeId, address lyraRewardRecipient)
+    external
+    onlyVault
+    returns (
+      uint positionId,
+      uint premiumPayed,
+      uint collateralToAdd
+    )
+  {
+    // validate trade
+    require(
+      lastTradeTimestamp[strikeId] + extendedStrategy.minTradeInterval <= block.timestamp,
+      "min time interval not passed"
+    );
+    require(_isValidVolVariance(strikeId), "vol variance exceeded");
+
+    Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
+    require(isValidStrike(strike), "invalid strike");
+
+    (positionId, premiumPayed) = _buyStrike(strike, lyraRewardRecipient);
+  }
+
+  /**
+   * @dev this function will not be used for long strategy
+   */
+  function reducePosition(
+    uint,
+    uint,
+    address
+  ) external pure {
+    revert("not supported");
   }
 
   /**
@@ -133,21 +145,5 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
     require(result.totalCost <= maxPremium, "premium too high");
 
     return (result.positionId, result.totalCost);
-  }
-
-  /**
-   * @dev this function will not be used for long strategy
-   */
-  function reducePosition(
-    uint,
-    uint,
-    address
-  ) external onlyVault {
-    revert("not supported");
-  }
-
-  modifier onlyVault() virtual {
-    require(msg.sender == address(vault), "only Vault");
-    _;
   }
 }

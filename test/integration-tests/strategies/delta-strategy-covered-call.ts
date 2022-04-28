@@ -7,13 +7,21 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
-import { DeltaStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
-import { DeltaStrategyDetailStruct, OptionPositionStructOutput } from '../../../typechain-types/DeltaStrategy';
+import { DeltaShortStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
+import {
+  DeltaShortExtendedStrategyStruct,
+  OptionPositionStructOutput,
+} from '../../../typechain-types/DeltaShortStrategy';
+import { BaseStrategyStruct } from '../../../typechain-types/StrategyBase';
 import { strikeIdToDetail } from './utils';
 
-const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
+const deltaStrategyDetail: DeltaShortExtendedStrategyStruct = {
   collatBuffer: toBN('1.5'), // multiplier of minimum required collateral
   collatPercent: toBN('0.35'), // percentage of full collateral
+  minTradeInterval: 600,
+};
+
+const baseStrategy: BaseStrategyStruct = {
   maxVolVariance: toBN('0.1'),
   gwavPeriod: 600,
   minTimeToExpiry: lyraConstants.DAY_SEC,
@@ -23,7 +31,6 @@ const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
   minVol: toBN('0.8'), // min vol to sell. (also used to calculate min premium for call selling vault)
   maxVol: toBN('1.3'), // max vol to sell.
   size: toBN('10'),
-  minTradeInterval: 600,
 };
 
 describe('Covered Call Delta Strategy integration test', async () => {
@@ -35,7 +42,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
   // let lyraGlobal: LyraGlobal;
   // let lyraETHMarkets: LyraMarket;
   let vault: LyraVault;
-  let strategy: DeltaStrategy;
+  let strategy: DeltaShortStrategy;
 
   // roles
   let deployer: SignerWithAddress;
@@ -113,7 +120,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
   before('deploy strategy', async () => {
     strategy = (await (
-      await ethers.getContractFactory('DeltaStrategy', {
+      await ethers.getContractFactory('DeltaShortStrategy', {
         libraries: {
           BlackScholes: lyraTestSystem.blackScholes.address,
         },
@@ -124,7 +131,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
         vault.address,
         TestSystem.OptionType.SHORT_CALL_BASE,
         lyraTestSystem.GWAVOracle.address,
-      )) as DeltaStrategy;
+      )) as DeltaShortStrategy;
   });
 
   before('initialize strategy and adaptor', async () => {
@@ -158,21 +165,27 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
   describe('setStrategy', async () => {
     it('setting strategy should correctly update strategy variables', async () => {
-      await strategy.connect(manager).setStrategy(defaultDeltaStrategyDetail);
+      await strategy.connect(manager).setBaseStrategy(baseStrategy);
+      const newStrategy = await strategy.baseStrategy();
+      expect(newStrategy.minTimeToExpiry).to.be.eq(baseStrategy.minTimeToExpiry);
+      expect(newStrategy.maxTimeToExpiry).to.be.eq(baseStrategy.maxTimeToExpiry);
+      expect(newStrategy.targetDelta).to.be.eq(baseStrategy.targetDelta);
+      expect(newStrategy.maxDeltaGap).to.be.eq(baseStrategy.maxDeltaGap);
+      expect(newStrategy.minVol).to.be.eq(baseStrategy.minVol);
+      expect(newStrategy.maxVol).to.be.eq(baseStrategy.maxVol);
+      expect(newStrategy.size).to.be.eq(baseStrategy.size);
+    });
 
-      const newStrategy = await strategy.currentStrategy();
-      expect(newStrategy.minTimeToExpiry).to.be.eq(defaultDeltaStrategyDetail.minTimeToExpiry);
-      expect(newStrategy.maxTimeToExpiry).to.be.eq(defaultDeltaStrategyDetail.maxTimeToExpiry);
-      expect(newStrategy.targetDelta).to.be.eq(defaultDeltaStrategyDetail.targetDelta);
-      expect(newStrategy.maxDeltaGap).to.be.eq(defaultDeltaStrategyDetail.maxDeltaGap);
-      expect(newStrategy.minVol).to.be.eq(defaultDeltaStrategyDetail.minVol);
-      expect(newStrategy.maxVol).to.be.eq(defaultDeltaStrategyDetail.maxVol);
-      expect(newStrategy.size).to.be.eq(defaultDeltaStrategyDetail.size);
-      expect(newStrategy.minTradeInterval).to.be.eq(defaultDeltaStrategyDetail.minTradeInterval);
+    it('setting extended strategy should correctly update strategy variables', async () => {
+      await strategy.connect(manager).setExtendedStrategy(deltaStrategyDetail);
+      const newStrategy = await strategy.extendedStrategy();
+      expect(newStrategy.collatBuffer).to.be.eq(deltaStrategyDetail.collatBuffer);
+      expect(newStrategy.collatPercent).to.be.eq(deltaStrategyDetail.collatPercent);
+      expect(newStrategy.minTradeInterval).to.be.eq(deltaStrategyDetail.minTradeInterval);
     });
 
     it('should revert if setStrategy is not called by owner', async () => {
-      await expect(strategy.connect(randomUser).setStrategy(defaultDeltaStrategyDetail)).to.be.revertedWith(
+      await expect(strategy.connect(randomUser).setBaseStrategy(baseStrategy)).to.be.revertedWith(
         'Ownable: caller is not the owner',
       );
     });
@@ -205,7 +218,12 @@ describe('Covered Call Delta Strategy integration test', async () => {
       await vault.connect(manager).startNextRound(boardId);
     });
     it('should revert when trying to update strategy mid-round', async () => {
-      await expect(strategy.connect(manager).setStrategy(defaultDeltaStrategyDetail)).to.revertedWith(
+      await expect(strategy.connect(manager).setBaseStrategy(baseStrategy)).to.revertedWith(
+        'cannot change strategy if round is active',
+      );
+    });
+    it('should revert when trying to update extended strategy detail mid-round', async () => {
+      await expect(strategy.connect(manager).setExtendedStrategy(deltaStrategyDetail)).to.revertedWith(
         'cannot change strategy if round is active',
       );
     });
@@ -265,7 +283,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
       const positionId = await strategy.strikeToPositionId(storedStrikeId);
       const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
 
-      expect(position.amount.eq(defaultDeltaStrategyDetail.size)).to.be.true;
+      expect(position.amount.eq(baseStrategy.size)).to.be.true;
       expect(position.collateral.eq(collateralToAdd)).to.be.true;
     });
 
@@ -288,7 +306,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
       expect(vaultStateBefore.lockedAmountLeft.sub(vaultStateAfter.lockedAmountLeft).eq(collateralToAdd)).to.be.true;
 
       const [positionAfter] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
-      expect(positionAfter.amount.sub(positionBefore.amount).eq(defaultDeltaStrategyDetail.size)).to.be.true;
+      expect(positionAfter.amount.sub(positionBefore.amount).eq(baseStrategy.size)).to.be.true;
     });
 
     it('should be able to trade a higher strike if spot price goes up', async () => {
@@ -303,7 +321,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
       const positionId = await strategy.strikeToPositionId(storedStrikeId);
       const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
 
-      expect(position.amount.eq(defaultDeltaStrategyDetail.size)).to.be.true;
+      expect(position.amount.eq(baseStrategy.size)).to.be.true;
     });
     it('should revert when trying to trade the old strike', async () => {
       await lyraEvm.fastForward(600);

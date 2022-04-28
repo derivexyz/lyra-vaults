@@ -8,7 +8,7 @@ interface IStrategy {
     external
     returns (
       uint positionId,
-      uint premiumReceived,
+      uint premium,
       uint collateralAdded
     );
 
