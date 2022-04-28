@@ -64,10 +64,6 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     strategyDetail = _deltaStrategy;
   }
 
-  ///////////////////
-  // VAULT ACTIONS //
-  ///////////////////
-
   /**
    * @dev set the board id that will be traded for the next round
    * @param boardId lyra board Id.
@@ -77,6 +73,10 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     require(_isValidExpiry(board.expiry), "invalid board");
     activeExpiry = board.expiry;
   }
+
+  ///////////////////
+  // VAULT ACTIONS //
+  ///////////////////
 
   /**
    * @dev convert premium in quote asset into collateral asset and send it back to the vault.
