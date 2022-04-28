@@ -27,11 +27,11 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   using SignedDecimalMath for int;
 
   // example strategy detail
-  struct DeltaExtendedStrategy {
+  struct DeltaLongExtendedStrategy {
     uint minTradeInterval;
   }
 
-  DeltaExtendedStrategy public extendedStrategy;
+  DeltaLongExtendedStrategy public extendedStrategy;
 
   ///////////
   // ADMIN //
@@ -46,7 +46,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   /**
    * @dev update the extended strategy detail for the new round.
    */
-  function setExtendedStrategy(DeltaExtendedStrategy memory _deltaStrategy) external onlyOwner {
+  function setExtendedStrategy(DeltaLongExtendedStrategy memory _deltaStrategy) external onlyOwner {
     (, , , , , , , bool roundInProgress) = vault.vaultState();
     require(!roundInProgress, "cannot change strategy if round is active");
     extendedStrategy = _deltaStrategy;
@@ -78,7 +78,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
    * @param lyraRewardRecipient address to receive trading reward. This need to be whitelisted
    * @return positionId
    * @return premiumPayed
-   * @return collateralToAdd this value will always be 0 for long strategy
+   * @return capitalUsed this value will always be 0 for long strategy
    */
   function doTrade(uint strikeId, address lyraRewardRecipient)
     external
@@ -86,7 +86,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
     returns (
       uint positionId,
       uint premiumPayed,
-      uint collateralToAdd
+      uint capitalUsed
     )
   {
     // validate trade
@@ -99,7 +99,16 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
     Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
     require(isValidStrike(strike), "invalid strike");
 
-    (positionId, premiumPayed) = _buyStrike(strike, lyraRewardRecipient);
+    // max premium willing to pay
+    uint maxPremium = _getPremiumLimit(strike, false);
+
+    require(
+      collateralAsset.transferFrom(address(vault), address(this), maxPremium),
+      "collateral transfer from vault failed"
+    );
+
+    (positionId, premiumPayed) = _buyStrike(strike, maxPremium, lyraRewardRecipient);
+    capitalUsed = premiumPayed;
   }
 
   /**
@@ -116,19 +125,22 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   /**
    * @dev perform the trade
    * @param strike strike detail
+   * @param maxPremium max premium willing to spend for this trade
    * @param lyraRewardRecipient address to receive lyra trading reward
    * @return positionId
    * @return premiumReceived
    */
-  function _buyStrike(Strike memory strike, address lyraRewardRecipient) internal returns (uint, uint) {
-    // get max premium to pay
-    uint maxPremium = _getPremiumLimit(strike, false);
+  function _buyStrike(
+    Strike memory strike,
+    uint maxPremium,
+    address lyraRewardRecipient
+  ) internal returns (uint, uint) {
     // perform trade to long
     TradeResult memory result = openPosition(
       TradeInputParameters({
         strikeId: strike.id,
         positionId: strikeToPositionId[strike.id],
-        iterations: 4,
+        iterations: 1,
         optionType: optionType,
         amount: baseStrategy.size,
         setCollateralTo: 0,
