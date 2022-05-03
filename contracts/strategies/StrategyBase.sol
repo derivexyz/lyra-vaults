@@ -113,6 +113,37 @@ contract StrategyBase is VaultAdapter {
   // Trade Parameter Helpers //
   /////////////////////////////
 
+  function _closePosition(
+    OptionPosition memory position,
+    uint closeAmount,
+    uint minTotalCost,
+    uint maxTotalCost,
+    address lyraRewardRecipient
+  ) internal {
+    // closes excess position with premium balance
+
+    TradeInputParameters memory tradeParams = TradeInputParameters({
+      strikeId: position.strikeId,
+      positionId: position.positionId,
+      iterations: 3,
+      optionType: optionType,
+      amount: closeAmount,
+      setCollateralTo: position.collateral,
+      minTotalCost: minTotalCost,
+      maxTotalCost: maxTotalCost,
+      rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
+    });
+
+    TradeResult memory result;
+    if (!_isOutsideDeltaCutoff(position.strikeId)) {
+      result = closePosition(tradeParams);
+    } else {
+      // will pay less competitive price to close position
+      result = forceClosePosition(tradeParams);
+    }
+    require(result.totalCost <= maxTotalCost, "premium paid is above max expected premium");
+  }
+
   /**
    * @dev Automatically decide between close and forceClose
    * depending on whether deltaCutoff or tradingCutoff are crossed
