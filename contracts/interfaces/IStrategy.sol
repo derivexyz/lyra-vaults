@@ -19,7 +19,7 @@ interface IStrategy {
   ) external;
 
 
-  // function forceCloseAll() external;
+  function forceCloseAll(address lyraRewardRecipient) external;
 
   function returnFundsAndClearStrikes() external;
 }

@@ -48,7 +48,8 @@ contract MockStrategy is IStrategy {
     address
   ) external {}
 
-  function emergencyCloseAll(address lyraRewardRecipient) external {}
+
+  function forceCloseAll(address lyraRewardRecipient) external {}
 
   function setMockIsSettled(bool _isSettled) public {
     isSettlted = _isSettled;
