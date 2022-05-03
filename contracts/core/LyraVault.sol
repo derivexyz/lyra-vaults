@@ -18,7 +18,7 @@ contract LyraVault is Ownable, BaseVault {
   address public lyraRewardRecipient;
 
   // Amount locked for scheduled withdrawals last week;
-  uint128 public lastQueuedWithdrawAmount;
+  uint public lastQueuedWithdrawAmount;
   // % of funds to be used for weekly option purchase
   uint public optionAllocation;
 
@@ -97,12 +97,12 @@ contract LyraVault is Ownable, BaseVault {
 
     strategy.setBoard(boardId);
 
-    (uint lockedBalance, uint queuedWithdrawAmount) = _rollToNextRound(uint(lastQueuedWithdrawAmount));
+    (uint lockedBalance, uint queuedWithdrawAmount) = _rollToNextRound(lastQueuedWithdrawAmount);
 
     vaultState.lockedAmount = uint104(lockedBalance);
     vaultState.lockedAmountLeft = lockedBalance;
     vaultState.roundInProgress = true;
-    lastQueuedWithdrawAmount = uint128(queuedWithdrawAmount);
+    lastQueuedWithdrawAmount = queuedWithdrawAmount;
 
     emit RoundStarted(vaultState.round, uint104(lockedBalance));
   }

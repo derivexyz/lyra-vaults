@@ -229,27 +229,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
 
     // closes excess position with premium balance
     uint maxExpectedPremium = _getPremiumLimit(strike, strategyDetail.maxVol, strategyDetail.size);
-    TradeInputParameters memory tradeParams = TradeInputParameters({
-      strikeId: position.strikeId,
-      positionId: position.positionId,
-      iterations: 3,
-      optionType: optionType,
-      amount: closeAmount,
-      setCollateralTo: position.collateral,
-      minTotalCost: type(uint).min,
-      maxTotalCost: maxExpectedPremium,
-      rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
-    });
-
-    TradeResult memory result;
-    if (!_isOutsideDeltaCutoff(strike.id)) {
-      result = closePosition(tradeParams);
-    } else {
-      // will pay less competitive price to close position
-      result = forceClosePosition(tradeParams);
-    }
-
-    require(result.totalCost <= maxExpectedPremium, "premium paid is above max expected premium");
+    _closePosition(position, closeAmount, 0, maxExpectedPremium, lyraRewardRecipient);
 
     // return closed collateral amount
     if (_isBaseCollat()) {
@@ -259,6 +239,15 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
       // quote collateral
       quoteAsset.transfer(address(vault), closeAmount);
     }
+  }
+
+  /**
+   * forced to close all out standing positions, and send funds back to vault
+   * @return done if all the positions are closed out successfully.
+   */
+  function forceCloseAll() external onlyVault returns (bool done) {
+    (, , , , , , , bool roundInProgress) = vault.vaultState();
+    require(roundInProgress, "cannot change strategy if round is active");
   }
 
   /**

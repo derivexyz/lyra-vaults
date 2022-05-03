@@ -18,5 +18,7 @@ interface IStrategy {
     address rewardRecipient
   ) external;
 
+  // function forceCloseAll() external;
+
   function returnFundsAndClearStrikes() external;
 }
