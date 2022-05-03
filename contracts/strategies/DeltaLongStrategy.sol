@@ -135,6 +135,23 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   }
 
   /**
+   * forced to close all out standing positions, and send funds back to vault
+   */
+  function forceCloseAll(address lyraRewardRecipient) external onlyVault {
+    // the vault might not hold enough sUSD to close all positions, will need someone to tapup before doing so.
+    for (uint i = 0; i < activeStrikeIds.length; i++) {
+      uint strikeId = activeStrikeIds[i];
+      OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
+      // revert if position state is not settled
+      _closePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
+      delete strikeToPositionId[strikeId];
+      delete lastTradeTimestamp[strikeId];
+    }
+
+    _returnFundsToVaut();
+  }
+
+  /**
    * @dev perform the trade
    * @param strike strike detail
    * @param maxPremium max premium willing to spend for this trade

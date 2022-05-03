@@ -208,7 +208,7 @@ contract StrategyBase is VaultAdapter {
         // revert if position state is not settled
         require(position.state != PositionState.ACTIVE, "cannot clear active position");
         delete strikeToPositionId[strikeId];
-        delete lastTradeTimestamp[i];
+        delete lastTradeTimestamp[strikeId];
       }
       delete activeStrikeIds;
     }

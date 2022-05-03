@@ -89,6 +89,23 @@ contract LyraVault is Ownable, BaseVault {
     emit RoundClosed(vaultState.round, lockAmount);
   }
 
+  /// @dev close the current round, enable user to deposit for the next round
+  function forceClose() external onlyOwner {
+    require(vaultState.roundInProgress, "round closed");
+
+    uint104 lockAmount = vaultState.lockedAmount;
+    vaultState.lastLockedAmount = lockAmount;
+    vaultState.lockedAmountLeft = 0;
+    vaultState.lockedAmount = 0;
+    vaultState.nextRoundReadyTimestamp = block.timestamp + Vault.ROUND_DELAY;
+    vaultState.roundInProgress = false;
+
+    // won't be able to close if positions are not settled
+    strategy.forceCloseAll(lyraRewardRecipient);
+
+    emit RoundClosed(vaultState.round, lockAmount);
+  }
+
   /// @notice start the next round
   /// @param boardId board id (asset + expiry) for next round.
   function startNextRound(uint boardId) external onlyOwner {
