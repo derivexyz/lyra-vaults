@@ -33,21 +33,6 @@ contract StrategyBase is VaultAdapter {
   uint[] public activeStrikeIds;
   mapping(uint => uint) public strikeToPositionId;
 
-  // basic strategy parameters
-  struct BaseStrategy {
-    uint minTimeToExpiry;
-    uint maxTimeToExpiry;
-    int targetDelta;
-    uint maxDeltaGap;
-    uint minVol;
-    uint maxVol;
-    uint size;
-    uint maxVolVariance;
-    uint gwavPeriod;
-  }
-
-  BaseStrategy public baseStrategy;
-
   ///////////
   // ADMIN //
   ///////////
@@ -100,27 +85,15 @@ contract StrategyBase is VaultAdapter {
     collateralAsset = _isBaseCollat() ? baseAsset : quoteAsset;
   }
 
-  /**
-   * @dev update the base strategy for the new round.
-   */
-  function setBaseStrategy(BaseStrategy memory _baseStrategy) external onlyOwner {
-    (, , , , , , , bool roundInProgress) = vault.vaultState();
-    require(!roundInProgress, "cannot change strategy if round is active");
-    baseStrategy = _baseStrategy;
-  }
-
   ///////////////////
   // VAULT ACTIONS //
   ///////////////////
 
   /**
-   * @dev set the board id that will be traded for the next round
-   * @param boardId lyra board Id.
+   * @dev set the expiry for the next round
    */
-  function _setBoard(uint boardId) internal {
-    Board memory board = getBoard(boardId);
-    require(_isValidExpiry(board.expiry), "invalid board");
-    activeExpiry = board.expiry;
+  function _setExpiry(uint expiry) internal {
+    activeExpiry = expiry;
   }
 
   /**
@@ -144,47 +117,6 @@ contract StrategyBase is VaultAdapter {
     }
   }
 
-  ////////////////
-  // Validation //
-  ////////////////
-
-  /**
-   * @dev verify if the strike is valid for the strategy
-   * @return isValid true if vol is withint [minVol, maxVol] and delta is within targetDelta +- maxDeltaGap
-   */
-  function isValidStrike(Strike memory strike) public view returns (bool isValid) {
-    if (activeExpiry != strike.expiry) {
-      return false;
-    }
-
-    uint[] memory strikeId = _toDynamic(strike.id);
-    uint vol = getVols(strikeId)[0];
-    int callDelta = getDeltas(strikeId)[0];
-    int delta = _isCall() ? callDelta : callDelta - SignedDecimalMath.UNIT;
-    uint deltaGap = _abs(baseStrategy.targetDelta - delta);
-    return vol >= baseStrategy.minVol && vol <= baseStrategy.maxVol && deltaGap < baseStrategy.maxDeltaGap;
-  }
-
-  /**
-   * @dev check if the vol variance for the given strike is within certain range
-   */
-  function _isValidVolVariance(uint strikeId) internal view returns (bool isValid) {
-    uint volGWAV = gwavOracle.volGWAV(strikeId, baseStrategy.gwavPeriod);
-    uint volSpot = getVols(_toDynamic(strikeId))[0];
-
-    uint volDiff = (volGWAV >= volSpot) ? volGWAV - volSpot : volSpot - volGWAV;
-
-    return isValid = volDiff < baseStrategy.maxVolVariance;
-  }
-
-  /**
-   * @dev check if the expiry of the board is valid according to the strategy
-   */
-  function _isValidExpiry(uint expiry) public view returns (bool isValid) {
-    uint secondsToExpiry = _getSecondsToExpiry(expiry);
-    isValid = (secondsToExpiry >= baseStrategy.minTimeToExpiry && secondsToExpiry <= baseStrategy.maxTimeToExpiry);
-  }
-
   /////////////////////////////
   // Trade Parameter Helpers //
   /////////////////////////////
@@ -194,19 +126,20 @@ contract StrategyBase is VaultAdapter {
    * param listingId lyra option listing id
    * param size size of trade in Lyra standard sizes
    */
-  function _getPremiumLimit(Strike memory strike, bool isMin) internal view returns (uint limitPremium) {
+  function _getPremiumLimit(
+    Strike memory strike,
+    uint vol,
+    uint size
+  ) internal view returns (uint limitPremium) {
     ExchangeRateParams memory exchangeParams = getExchangeParams();
-    uint limitVol = isMin ? baseStrategy.minVol : baseStrategy.maxVol;
     (uint callPremium, uint putPremium) = getPurePremium(
       _getSecondsToExpiry(strike.expiry),
-      limitVol,
+      vol,
       exchangeParams.spotPrice,
       strike.strikePrice
     );
 
-    limitPremium = _isCall()
-      ? callPremium.multiplyDecimal(baseStrategy.size)
-      : putPremium.multiplyDecimal(baseStrategy.size);
+    limitPremium = _isCall() ? callPremium.multiplyDecimal(size) : putPremium.multiplyDecimal(size);
   }
 
   /**

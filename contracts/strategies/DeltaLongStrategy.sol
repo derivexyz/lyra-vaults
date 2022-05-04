@@ -27,11 +27,20 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   using SignedDecimalMath for int;
 
   // example strategy detail
-  struct DeltaLongExtendedStrategy {
+  struct DeltaLongStrategyDetail {
+    uint minTimeToExpiry;
+    uint maxTimeToExpiry;
+    int targetDelta;
+    uint maxDeltaGap;
+    uint minVol;
+    uint maxVol;
+    uint size;
+    uint maxVolVariance;
+    uint gwavPeriod;
     uint minTradeInterval;
   }
 
-  DeltaLongExtendedStrategy public extendedStrategy;
+  DeltaLongStrategyDetail public strategyDetail;
 
   ///////////
   // ADMIN //
@@ -44,12 +53,12 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   ) StrategyBase(_vault, _optionType, _gwavOracle) {}
 
   /**
-   * @dev update the extended strategy detail for the new round.
+   * @dev update the strategy detail for the new round.
    */
-  function setExtendedStrategy(DeltaLongExtendedStrategy memory _deltaStrategy) external onlyOwner {
+  function setStrategyDetail(DeltaLongStrategyDetail memory _deltaStrategy) external onlyOwner {
     (, , , , , , , bool roundInProgress) = vault.vaultState();
     require(!roundInProgress, "cannot change strategy if round is active");
-    extendedStrategy = _deltaStrategy;
+    strategyDetail = _deltaStrategy;
   }
 
   /**
@@ -57,7 +66,9 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
    * @param boardId lyra board Id.
    */
   function setBoard(uint boardId) external onlyVault {
-    _setBoard(boardId);
+    Board memory board = getBoard(boardId);
+    require(_isValidExpiry(board.expiry), "invalid board");
+    _setExpiry(board.expiry);
   }
 
   /**
@@ -91,7 +102,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   {
     // validate trade
     require(
-      lastTradeTimestamp[strikeId] + extendedStrategy.minTradeInterval <= block.timestamp,
+      lastTradeTimestamp[strikeId] + strategyDetail.minTradeInterval <= block.timestamp,
       "min time interval not passed"
     );
     require(_isValidVolVariance(strikeId), "vol variance exceeded");
@@ -100,7 +111,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
     require(isValidStrike(strike), "invalid strike");
 
     // max premium willing to pay
-    uint maxPremium = _getPremiumLimit(strike, false);
+    uint maxPremium = _getPremiumLimit(strike, strategyDetail.maxVol, strategyDetail.size);
 
     require(
       collateralAsset.transferFrom(address(vault), address(this), maxPremium),
@@ -142,7 +153,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
         positionId: strikeToPositionId[strike.id],
         iterations: 1,
         optionType: optionType,
-        amount: baseStrategy.size,
+        amount: strategyDetail.size,
         setCollateralTo: 0,
         minTotalCost: 0,
         maxTotalCost: maxPremium,
@@ -157,5 +168,42 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
     require(result.totalCost <= maxPremium, "premium too high");
 
     return (result.positionId, result.totalCost);
+  }
+
+  /**
+   * @dev verify if the strike is valid for the strategy
+   * @return isValid true if vol is withint [minVol, maxVol] and delta is within targetDelta +- maxDeltaGap
+   */
+  function isValidStrike(Strike memory strike) public view returns (bool isValid) {
+    if (activeExpiry != strike.expiry) {
+      return false;
+    }
+
+    uint[] memory strikeId = _toDynamic(strike.id);
+    uint vol = getVols(strikeId)[0];
+    int callDelta = getDeltas(strikeId)[0];
+    int delta = _isCall() ? callDelta : callDelta - SignedDecimalMath.UNIT;
+    uint deltaGap = _abs(strategyDetail.targetDelta - delta);
+    return vol >= strategyDetail.minVol && vol <= strategyDetail.maxVol && deltaGap < strategyDetail.maxDeltaGap;
+  }
+
+  /**
+   * @dev check if the vol variance for the given strike is within certain range
+   */
+  function _isValidVolVariance(uint strikeId) internal view returns (bool isValid) {
+    uint volGWAV = gwavOracle.volGWAV(strikeId, strategyDetail.gwavPeriod);
+    uint volSpot = getVols(_toDynamic(strikeId))[0];
+
+    uint volDiff = (volGWAV >= volSpot) ? volGWAV - volSpot : volSpot - volGWAV;
+
+    return isValid = volDiff < strategyDetail.maxVolVariance;
+  }
+
+  /**
+   * @dev check if the expiry of the board is valid according to the strategy
+   */
+  function _isValidExpiry(uint expiry) public view returns (bool isValid) {
+    uint secondsToExpiry = _getSecondsToExpiry(expiry);
+    isValid = (secondsToExpiry >= strategyDetail.minTimeToExpiry && secondsToExpiry <= strategyDetail.maxTimeToExpiry);
   }
 }

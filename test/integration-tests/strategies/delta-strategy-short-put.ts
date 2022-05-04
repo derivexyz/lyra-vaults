@@ -9,19 +9,15 @@ import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import { DeltaShortStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
 import {
-  DeltaShortExtendedStrategyStruct,
+  DeltaShortStrategyDetailStruct,
   OptionPositionStructOutput,
 } from '../../../typechain-types/DeltaShortStrategy';
-import { BaseStrategyStruct } from '../../../typechain-types/StrategyBase';
 import { strikeIdToDetail } from './utils';
 
-const deltaStrategyDetail: DeltaShortExtendedStrategyStruct = {
+const strategyDetail: DeltaShortStrategyDetailStruct = {
   collatBuffer: toBN('1.5'), // multiplier of minimum required collateral
   collatPercent: toBN('0.35'), // percentage of full collateral
   minTradeInterval: 600,
-};
-
-const baseStrategy: BaseStrategyStruct = {
   maxVolVariance: toBN('0.1'),
   gwavPeriod: 600,
   minTimeToExpiry: lyraConstants.DAY_SEC,
@@ -165,22 +161,12 @@ describe('Short Put Delta Strategy integration test', async () => {
 
   describe('setStrategy', async () => {
     it('setting strategy should correctly update strategy variables', async () => {
-      await strategy.connect(manager).setBaseStrategy(baseStrategy);
-      const newStrategy = await strategy.baseStrategy();
-      expect(newStrategy.minTimeToExpiry).to.be.eq(baseStrategy.minTimeToExpiry);
-      expect(newStrategy.maxTimeToExpiry).to.be.eq(baseStrategy.maxTimeToExpiry);
-      expect(newStrategy.targetDelta).to.be.eq(baseStrategy.targetDelta);
-      expect(newStrategy.maxDeltaGap).to.be.eq(baseStrategy.maxDeltaGap);
-      expect(newStrategy.minVol).to.be.eq(baseStrategy.minVol);
-      expect(newStrategy.maxVol).to.be.eq(baseStrategy.maxVol);
-      expect(newStrategy.size).to.be.eq(baseStrategy.size);
-    });
-    it('setting extended strategy should correctly update strategy variables', async () => {
-      await strategy.connect(manager).setExtendedStrategy(deltaStrategyDetail);
-      const newStrategy = await strategy.extendedStrategy();
-      expect(newStrategy.collatBuffer).to.be.eq(deltaStrategyDetail.collatBuffer);
-      expect(newStrategy.collatPercent).to.be.eq(deltaStrategyDetail.collatPercent);
-      expect(newStrategy.minTradeInterval).to.be.eq(deltaStrategyDetail.minTradeInterval);
+      await strategy.connect(manager).setStrategyDetail(strategyDetail);
+      const newStrategy = await strategy.strategyDetail();
+      expect(newStrategy.minTimeToExpiry).to.be.eq(strategyDetail.minTimeToExpiry);
+      expect(newStrategy.maxTimeToExpiry).to.be.eq(strategyDetail.maxTimeToExpiry);
+      expect(newStrategy.targetDelta).to.be.eq(strategyDetail.targetDelta);
+      expect(newStrategy.maxDeltaGap).to.be.eq(strategyDetail.maxDeltaGap);
     });
   });
 
@@ -245,7 +231,7 @@ describe('Short Put Delta Strategy integration test', async () => {
       const positionId = await strategy.strikeToPositionId(storedStrikeId);
       const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
 
-      expect(position.amount.eq(baseStrategy.size)).to.be.true;
+      expect(position.amount.eq(strategyDetail.size)).to.be.true;
       expect(position.collateral.eq(collateralToAdd)).to.be.true;
     });
 
@@ -265,7 +251,7 @@ describe('Short Put Delta Strategy integration test', async () => {
       const positionId = await strategy.strikeToPositionId(storedStrikeId);
       const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
 
-      expect(position.amount.eq(baseStrategy.size)).to.be.true;
+      expect(position.amount.eq(strategyDetail.size)).to.be.true;
     });
 
     const additionalDepositAmount = toBN('25000');

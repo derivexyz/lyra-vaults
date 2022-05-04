@@ -8,15 +8,11 @@ import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import { DeltaLongStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
-import { DeltaLongExtendedStrategyStruct } from '../../../typechain-types/DeltaLongStrategy';
-import { BaseStrategyStruct } from '../../../typechain-types/StrategyBase';
+import { DeltaLongStrategyDetailStruct } from '../../../typechain-types/DeltaLongStrategy';
 import { strikeIdToDetail } from './utils';
 
-const longStrategyDetail: DeltaLongExtendedStrategyStruct = {
+const strategyDetail: DeltaLongStrategyDetailStruct = {
   minTradeInterval: 600,
-};
-
-const baseStrategy: BaseStrategyStruct = {
   maxVolVariance: toBN('0.1'),
   gwavPeriod: 600,
   minTimeToExpiry: lyraConstants.DAY_SEC,
@@ -153,25 +149,20 @@ describe('Long Call Strategy integration test', async () => {
 
   describe('setStrategy', async () => {
     it('setting strategy should correctly update strategy variables', async () => {
-      await strategy.connect(manager).setBaseStrategy(baseStrategy);
-      const newStrategy = await strategy.baseStrategy();
-      expect(newStrategy.minTimeToExpiry).to.be.eq(baseStrategy.minTimeToExpiry);
-      expect(newStrategy.maxTimeToExpiry).to.be.eq(baseStrategy.maxTimeToExpiry);
-      expect(newStrategy.targetDelta).to.be.eq(baseStrategy.targetDelta);
-      expect(newStrategy.maxDeltaGap).to.be.eq(baseStrategy.maxDeltaGap);
-      expect(newStrategy.minVol).to.be.eq(baseStrategy.minVol);
-      expect(newStrategy.maxVol).to.be.eq(baseStrategy.maxVol);
-      expect(newStrategy.size).to.be.eq(baseStrategy.size);
-    });
-
-    it('setting extended strategy should correctly update strategy variables', async () => {
-      await strategy.connect(manager).setExtendedStrategy(longStrategyDetail);
-      const newStrategy = await strategy.extendedStrategy();
-      expect(newStrategy).to.be.eq(longStrategyDetail.minTradeInterval);
+      await strategy.connect(manager).setStrategyDetail(strategyDetail);
+      const newStrategy = await strategy.strategyDetail();
+      expect(newStrategy.minTimeToExpiry).to.be.eq(strategyDetail.minTimeToExpiry);
+      expect(newStrategy.maxTimeToExpiry).to.be.eq(strategyDetail.maxTimeToExpiry);
+      expect(newStrategy.targetDelta).to.be.eq(strategyDetail.targetDelta);
+      expect(newStrategy.maxDeltaGap).to.be.eq(strategyDetail.maxDeltaGap);
+      expect(newStrategy.minVol).to.be.eq(strategyDetail.minVol);
+      expect(newStrategy.maxVol).to.be.eq(strategyDetail.maxVol);
+      expect(newStrategy.size).to.be.eq(strategyDetail.size);
+      expect(newStrategy.minTradeInterval).to.be.eq(strategyDetail.minTradeInterval);
     });
 
     it('should revert if setStrategy is not called by owner', async () => {
-      await expect(strategy.connect(randomUser).setBaseStrategy(baseStrategy)).to.be.revertedWith(
+      await expect(strategy.connect(randomUser).setStrategyDetail(strategyDetail)).to.be.revertedWith(
         'Ownable: caller is not the owner',
       );
     });
@@ -204,12 +195,7 @@ describe('Long Call Strategy integration test', async () => {
       await vault.connect(manager).startNextRound(boardId);
     });
     it('should revert when trying to update strategy mid-round', async () => {
-      await expect(strategy.connect(manager).setBaseStrategy(baseStrategy)).to.revertedWith(
-        'cannot change strategy if round is active',
-      );
-    });
-    it('should revert when trying to update extended strategy detail mid-round', async () => {
-      await expect(strategy.connect(manager).setExtendedStrategy(longStrategyDetail)).to.revertedWith(
+      await expect(strategy.connect(manager).setStrategyDetail(strategyDetail)).to.revertedWith(
         'cannot change strategy if round is active',
       );
     });
@@ -271,7 +257,7 @@ describe('Long Call Strategy integration test', async () => {
       const positionId = await strategy.strikeToPositionId(storedStrikeId);
       const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
 
-      expect(position.amount.eq(baseStrategy.size)).to.be.true;
+      expect(position.amount.eq(strategyDetail.size)).to.be.true;
       expect(position.collateral.eq(0)).to.be.true;
     });
 
@@ -296,7 +282,7 @@ describe('Long Call Strategy integration test', async () => {
       expect(vaultStateBefore.lockedAmountLeft.sub(vaultStateAfter.lockedAmountLeft).eq(premium)).to.be.true;
 
       const [positionAfter] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
-      expect(positionAfter.amount.sub(positionBefore.amount).eq(baseStrategy.size)).to.be.true;
+      expect(positionAfter.amount.sub(positionBefore.amount).eq(strategyDetail.size)).to.be.true;
     });
 
     it('should be able to trade a higher strike if spot price goes up', async () => {
@@ -311,7 +297,7 @@ describe('Long Call Strategy integration test', async () => {
       const positionId = await strategy.strikeToPositionId(storedStrikeId);
       const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
 
-      expect(position.amount.eq(baseStrategy.size)).to.be.true;
+      expect(position.amount.eq(strategyDetail.size)).to.be.true;
     });
     it('should revert when trying to trade the old strike', async () => {
       await lyraEvm.fastForward(600);

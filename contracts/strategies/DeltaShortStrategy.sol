@@ -27,13 +27,22 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
   using SignedDecimalMath for int;
 
   // example strategy detail
-  struct DeltaShortExtendedStrategy {
+  struct DeltaShortStrategyDetail {
+    uint minTimeToExpiry;
+    uint maxTimeToExpiry;
+    int targetDelta;
+    uint maxDeltaGap;
+    uint minVol;
+    uint maxVol;
+    uint size;
+    uint maxVolVariance;
+    uint gwavPeriod;
     uint collatBuffer; // multiple of vaultAdapter.minCollateral(): 1.1 -> 110% * minCollat
     uint collatPercent; // partial collateral: 0.9 -> 90% * fullCollat
     uint minTradeInterval;
   }
 
-  DeltaShortExtendedStrategy public extendedStrategy;
+  DeltaShortStrategyDetail public strategyDetail;
 
   ///////////
   // ADMIN //
@@ -46,12 +55,12 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
   ) StrategyBase(_vault, _optionType, _gwavOracle) {}
 
   /**
-   * @dev update the strategy for the new round.
+   * @dev update the strategy detail for the new round.
    */
-  function setExtendedStrategy(DeltaShortExtendedStrategy memory _deltaStrategy) external onlyOwner {
+  function setStrategyDetail(DeltaShortStrategyDetail memory _deltaStrategy) external onlyOwner {
     (, , , , , , , bool roundInProgress) = vault.vaultState();
     require(!roundInProgress, "cannot change strategy if round is active");
-    extendedStrategy = _deltaStrategy;
+    strategyDetail = _deltaStrategy;
   }
 
   ///////////////////
@@ -63,7 +72,9 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
    * @param boardId lyra board Id.
    */
   function setBoard(uint boardId) external onlyVault {
-    _setBoard(boardId);
+    Board memory board = getBoard(boardId);
+    require(_isValidExpiry(board.expiry), "invalid board");
+    _setExpiry(board.expiry);
   }
 
   /**
@@ -96,7 +107,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
   {
     // validate trade
     require(
-      lastTradeTimestamp[strikeId] + extendedStrategy.minTradeInterval <= block.timestamp,
+      lastTradeTimestamp[strikeId] + strategyDetail.minTradeInterval <= block.timestamp,
       "min time interval not passed"
     );
     require(_isValidVolVariance(strikeId), "vol variance exceeded");
@@ -117,7 +128,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
 
   /**
    * @dev calculate required collateral to add in the next trade.
-   * sell size is fixed as baseStrategy.size
+   * sell size is fixed as strategyDetail.size
    * only add collateral if the additional sell will make the position out of buffer range
    * never remove collateral from an existing position
    */
@@ -126,7 +137,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     view
     returns (uint collateralToAdd, uint setCollateralTo)
   {
-    uint sellAmount = baseStrategy.size;
+    uint sellAmount = strategyDetail.size;
     ExchangeRateParams memory exchangeParams = getExchangeParams();
 
     // get existing position info if active
@@ -149,7 +160,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     // get targetCollat for this trade instance
     // prevents vault from adding excess collat just to meet targetCollat
     uint targetCollat = existingCollateral +
-      _getFullCollateral(strike.strikePrice, sellAmount).multiplyDecimal(extendedStrategy.collatPercent);
+      _getFullCollateral(strike.strikePrice, sellAmount).multiplyDecimal(strategyDetail.collatPercent);
 
     // if excess collateral, keep in position to encourage more option selling
     setCollateralTo = _max(_max(minBufferCollateral, targetCollat), existingCollateral);
@@ -172,7 +183,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     address lyraRewardRecipient
   ) internal returns (uint, uint) {
     // get minimum expected premium based on minIv
-    uint minExpectedPremium = _getPremiumLimit(strike, true);
+    uint minExpectedPremium = _getPremiumLimit(strike, strategyDetail.minVol, strategyDetail.size);
     // perform trade
     TradeResult memory result = openPosition(
       TradeInputParameters({
@@ -180,7 +191,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
         positionId: strikeToPositionId[strike.id],
         iterations: 4,
         optionType: optionType,
-        amount: baseStrategy.size,
+        amount: strategyDetail.size,
         setCollateralTo: setCollateralTo,
         minTotalCost: minExpectedPremium,
         maxTotalCost: type(uint).max,
@@ -216,7 +227,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     );
 
     // closes excess position with premium balance
-    uint maxExpectedPremium = _getPremiumLimit(strike, false);
+    uint maxExpectedPremium = _getPremiumLimit(strike, strategyDetail.maxVol, strategyDetail.size);
     TradeInputParameters memory tradeParams = TradeInputParameters({
       strikeId: position.strikeId,
       positionId: position.positionId,
@@ -284,10 +295,51 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     uint amount
   ) internal view returns (uint) {
     uint minCollat = getMinCollateral(optionType, strikePrice, expiry, spotPrice, amount);
-    uint minCollatWithBuffer = minCollat.multiplyDecimal(extendedStrategy.collatBuffer);
+    uint minCollatWithBuffer = minCollat.multiplyDecimal(strategyDetail.collatBuffer);
 
     uint fullCollat = _getFullCollateral(strikePrice, amount);
 
     return _min(minCollatWithBuffer, fullCollat);
+  }
+
+  /////////////////
+  // Validation ///
+  /////////////////
+
+  /**
+   * @dev verify if the strike is valid for the strategy
+   * @return isValid true if vol is withint [minVol, maxVol] and delta is within targetDelta +- maxDeltaGap
+   */
+  function isValidStrike(Strike memory strike) public view returns (bool isValid) {
+    if (activeExpiry != strike.expiry) {
+      return false;
+    }
+
+    uint[] memory strikeId = _toDynamic(strike.id);
+    uint vol = getVols(strikeId)[0];
+    int callDelta = getDeltas(strikeId)[0];
+    int delta = _isCall() ? callDelta : callDelta - SignedDecimalMath.UNIT;
+    uint deltaGap = _abs(strategyDetail.targetDelta - delta);
+    return vol >= strategyDetail.minVol && vol <= strategyDetail.maxVol && deltaGap < strategyDetail.maxDeltaGap;
+  }
+
+  /**
+   * @dev check if the vol variance for the given strike is within certain range
+   */
+  function _isValidVolVariance(uint strikeId) internal view returns (bool isValid) {
+    uint volGWAV = gwavOracle.volGWAV(strikeId, strategyDetail.gwavPeriod);
+    uint volSpot = getVols(_toDynamic(strikeId))[0];
+
+    uint volDiff = (volGWAV >= volSpot) ? volGWAV - volSpot : volSpot - volGWAV;
+
+    return isValid = volDiff < strategyDetail.maxVolVariance;
+  }
+
+  /**
+   * @dev check if the expiry of the board is valid according to the strategy
+   */
+  function _isValidExpiry(uint expiry) public view returns (bool isValid) {
+    uint secondsToExpiry = _getSecondsToExpiry(expiry);
+    isValid = (secondsToExpiry >= strategyDetail.minTimeToExpiry && secondsToExpiry <= strategyDetail.maxTimeToExpiry);
   }
 }
