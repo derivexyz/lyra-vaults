@@ -1,6 +1,6 @@
-import { getGlobalDeploys, getMarketDeploys, lyraConstants, lyraUtils, TestSystem } from '@lyrafinance/core';
-import { toBN } from '@lyrafinance/core/dist/scripts/util/web3utils';
-import { DeployOverrides } from '@lyrafinance/core/dist/test/utils/deployTestSystem';
+import { getGlobalDeploys, getMarketDeploys, lyraConstants, lyraUtils, TestSystem } from '@lyrafinance/protocol';
+import { toBN } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
+import { DeployOverrides } from '@lyrafinance/protocol/dist/test/utils/deployTestSystem';
 import { ethers } from 'ethers';
 async function main() {
   /////////////////////////////////////
@@ -54,14 +54,14 @@ async function main() {
 
   // 'local' used here as example, but can pass in 'kovan-ovm' or 'mainnet-ovm' instead of 'local'.
   // 1. get global contracts
-  const lyraGlobal = getGlobalDeploys('local');
+  const lyraGlobal = await getGlobalDeploys('local');
   console.log('contract name:', lyraGlobal.SynthetixAdapter.contractName);
   console.log('address:', lyraGlobal.SynthetixAdapter.address);
   // console.log('abi:', lyraGlobal.SynthetixAdapter.abi);
   // console.log('bytecode:', lyraGlobal.SynthetixAdapter.bytecode.slice(0, 20) + '...');
 
   // 2. get market contracts
-  const lyraMarket = getMarketDeploys('local', 'sETH');
+  const lyraMarket = await getMarketDeploys('local', 'sETH');
   console.log('contract name:', lyraMarket.OptionMarket.contractName);
   console.log('address:', lyraMarket.OptionMarket.address);
   // console.log('abi:', lyraMarket.OptionMarket.abi);

@@ -5,7 +5,7 @@ import {
   lyraConstants as constants,
   lyraUtils as utils,
   TestSystem,
-} from '@lyrafinance/core';
+} from '@lyrafinance/protocol';
 import chalk from 'chalk';
 import { Contract, ethers } from 'ethers';
 
@@ -14,12 +14,12 @@ async function main() {
   const provider = new ethers.providers.JsonRpcProvider(
     'https://optimism-kovan.infura.io/v3/561ebceae957407ea6699a474aa4f7b0',
   );
-  const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // enter address with ETH
+  const privateKey = '0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e'; // enter address with ETH
   const deployer = new ethers.Wallet(privateKey, provider);
 
   // 2. get lyra contracts
-  let lyraGlobal = getGlobalDeploys('kovan-ovm');
-  let lyraMarket = getMarketDeploys('kovan-ovm', 'sETH');
+  let lyraGlobal = await getGlobalDeploys('kovan-ovm');
+  let lyraMarket = await getMarketDeploys('kovan-ovm', 'sETH');
 
   // const testFaucet = new Contract(lyraGlobal.TestFaucet.address, lyraGlobal.TestFaucet.abi, deployer);
   const sUSD = new Contract(lyraGlobal.QuoteAsset.address, lyraGlobal.QuoteAsset.abi, deployer);
@@ -30,9 +30,9 @@ async function main() {
   await execute(sUSD, 'approve', [optionMarket.address, constants.MAX_UINT], provider);
 
   const tradeParams = {
-    strikeId: 1,
+    strikeId: 5,
     positionId: 0,
-    iterations: 5,
+    iterations: 3,
     optionType: TestSystem.OptionType.LONG_CALL,
     amount: utils.toBN('1'),
     setCollateralTo: utils.toBN('0'),
