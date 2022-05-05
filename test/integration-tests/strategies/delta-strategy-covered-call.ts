@@ -627,7 +627,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
       const positionId = await strategy.strikeToPositionId(storedStrikeId);
       const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
 
-      expect(position.amount.eq(baseStrategy.size)).to.be.true;
+      expect(position.amount.eq(strategyDetail.size)).to.be.true;
     });
 
     it('should be able to trade a higher strike if spot price goes up', async () => {
@@ -642,7 +642,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
       const positionId = await strategy.strikeToPositionId(storedStrikeId);
       const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
 
-      expect(position.amount.eq(baseStrategy.size)).to.be.true;
+      expect(position.amount.eq(strategyDetail.size)).to.be.true;
     });
 
     it('cannot foce close when the price move against our positions.', async () => {
