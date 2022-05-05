@@ -7,13 +7,17 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
-import { DeltaStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
-import { DeltaStrategyDetailStruct, OptionPositionStructOutput } from '../../../typechain-types/DeltaStrategy';
+import { DeltaShortStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
+import {
+  DeltaShortStrategyDetailStruct,
+  OptionPositionStructOutput,
+} from '../../../typechain-types/DeltaShortStrategy';
 import { strikeIdToDetail } from './utils';
 
-const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
+const strategyDetail: DeltaShortStrategyDetailStruct = {
   collatBuffer: toBN('1.5'), // multiplier of minimum required collateral
   collatPercent: toBN('0.35'), // percentage of full collateral
+  minTradeInterval: 600,
   maxVolVariance: toBN('0.1'),
   gwavPeriod: 600,
   minTimeToExpiry: lyraConstants.DAY_SEC,
@@ -23,7 +27,6 @@ const defaultDeltaStrategyDetail: DeltaStrategyDetailStruct = {
   minVol: toBN('0.8'), // min vol to sell. (also used to calculate min premium for call selling vault)
   maxVol: toBN('1.3'), // max vol to sell.
   size: toBN('15'),
-  minTradeInterval: 600,
 };
 
 describe('Short Put Delta Strategy integration test', async () => {
@@ -35,7 +38,7 @@ describe('Short Put Delta Strategy integration test', async () => {
   // let lyraGlobal: LyraGlobal;
   // let lyraETHMarkets: LyraMarket;
   let vault: LyraVault;
-  let strategy: DeltaStrategy;
+  let strategy: DeltaShortStrategy;
 
   // roles
   let deployer: SignerWithAddress;
@@ -114,7 +117,7 @@ describe('Short Put Delta Strategy integration test', async () => {
 
   before('deploy strategy', async () => {
     strategy = (await (
-      await ethers.getContractFactory('DeltaStrategy', {
+      await ethers.getContractFactory('DeltaShortStrategy', {
         libraries: {
           BlackScholes: lyraTestSystem.blackScholes.address,
         },
@@ -125,7 +128,7 @@ describe('Short Put Delta Strategy integration test', async () => {
         vault.address,
         TestSystem.OptionType.SHORT_PUT_QUOTE,
         lyraTestSystem.GWAVOracle.address,
-      )) as DeltaStrategy;
+      )) as DeltaShortStrategy;
   });
 
   before('initialize strategy and adaptor', async () => {
@@ -158,17 +161,12 @@ describe('Short Put Delta Strategy integration test', async () => {
 
   describe('setStrategy', async () => {
     it('setting strategy should correctly update strategy variables', async () => {
-      await strategy.connect(manager).setStrategy(defaultDeltaStrategyDetail);
-
-      const newStrategy = await strategy.currentStrategy();
-      expect(newStrategy.minTimeToExpiry).to.be.eq(defaultDeltaStrategyDetail.minTimeToExpiry);
-      expect(newStrategy.maxTimeToExpiry).to.be.eq(defaultDeltaStrategyDetail.maxTimeToExpiry);
-      expect(newStrategy.targetDelta).to.be.eq(defaultDeltaStrategyDetail.targetDelta);
-      expect(newStrategy.maxDeltaGap).to.be.eq(defaultDeltaStrategyDetail.maxDeltaGap);
-      expect(newStrategy.minVol).to.be.eq(defaultDeltaStrategyDetail.minVol);
-      expect(newStrategy.maxVol).to.be.eq(defaultDeltaStrategyDetail.maxVol);
-      expect(newStrategy.size).to.be.eq(defaultDeltaStrategyDetail.size);
-      expect(newStrategy.minTradeInterval).to.be.eq(defaultDeltaStrategyDetail.minTradeInterval);
+      await strategy.connect(manager).setStrategyDetail(strategyDetail);
+      const newStrategy = await strategy.strategyDetail();
+      expect(newStrategy.minTimeToExpiry).to.be.eq(strategyDetail.minTimeToExpiry);
+      expect(newStrategy.maxTimeToExpiry).to.be.eq(strategyDetail.maxTimeToExpiry);
+      expect(newStrategy.targetDelta).to.be.eq(strategyDetail.targetDelta);
+      expect(newStrategy.maxDeltaGap).to.be.eq(strategyDetail.maxDeltaGap);
     });
   });
 
@@ -233,7 +231,7 @@ describe('Short Put Delta Strategy integration test', async () => {
       const positionId = await strategy.strikeToPositionId(storedStrikeId);
       const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
 
-      expect(position.amount.eq(defaultDeltaStrategyDetail.size)).to.be.true;
+      expect(position.amount.eq(strategyDetail.size)).to.be.true;
       expect(position.collateral.eq(collateralToAdd)).to.be.true;
     });
 
@@ -253,7 +251,7 @@ describe('Short Put Delta Strategy integration test', async () => {
       const positionId = await strategy.strikeToPositionId(storedStrikeId);
       const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
 
-      expect(position.amount.eq(defaultDeltaStrategyDetail.size)).to.be.true;
+      expect(position.amount.eq(strategyDetail.size)).to.be.true;
     });
 
     const additionalDepositAmount = toBN('25000');
