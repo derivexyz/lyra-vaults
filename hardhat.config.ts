@@ -1,10 +1,12 @@
 import '@eth-optimism/plugins/hardhat/compiler';
+import { lyraContractPaths } from '@lyrafinance/protocol/dist/test/utils/package/index-paths';
 import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-waffle';
 import '@typechain/hardhat';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import 'hardhat-contract-sizer';
+import 'hardhat-dependency-compiler';
 import 'hardhat-gas-reporter';
 import 'hardhat-tracer';
 import 'solidity-coverage';
@@ -63,5 +65,8 @@ export default {
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
+  },
+  dependencyCompiler: {
+    paths: lyraContractPaths,
   },
 };
