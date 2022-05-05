@@ -1,4 +1,4 @@
-import { OptionMarket } from '@lyrafinance/core/dist/typechain-types';
+import { OptionMarket } from '@lyrafinance/protocol/dist/typechain-types';
 import { BigNumber } from 'ethers';
 
 export async function strikeIdToDetail(optionMarket: OptionMarket, strikeId: BigNumber) {
