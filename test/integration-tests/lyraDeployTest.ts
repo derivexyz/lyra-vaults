@@ -1,4 +1,4 @@
-import { lyraConstants, lyraEvm, lyraUtils, TestSystem, TestSystemContractsType } from '@lyrafinance/core';
+import { lyraConstants, lyraEvm, lyraUtils, TestSystem, TestSystemContractsType } from '@lyrafinance/protocol';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import chai, { expect } from 'chai';
 import { solidity } from 'ethereum-waffle';

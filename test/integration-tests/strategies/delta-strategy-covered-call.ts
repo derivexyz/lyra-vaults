@@ -1,8 +1,8 @@
-import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/core';
-import { PositionState, toBN } from '@lyrafinance/core/dist/scripts/util/web3utils';
-import { DEFAULT_PRICING_PARAMS } from '@lyrafinance/core/dist/test/utils/defaultParams';
-import { TestSystemContractsType } from '@lyrafinance/core/dist/test/utils/deployTestSystem';
-import { PricingParametersStruct } from '@lyrafinance/core/dist/typechain-types/OptionMarketViewer';
+import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/protocol';
+import { PositionState, toBN } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
+import { DEFAULT_PRICING_PARAMS } from '@lyrafinance/protocol/dist/test/utils/defaultParams';
+import { TestSystemContractsType } from '@lyrafinance/protocol/dist/test/utils/deployTestSystem';
+import { PricingParametersStruct } from '@lyrafinance/protocol/dist/typechain-types/OptionMarketViewer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
@@ -65,8 +65,9 @@ describe('Covered Call Delta Strategy integration test', async () => {
   before('deploy lyra core', async () => {
     const pricingParams: PricingParametersStruct = {
       ...DEFAULT_PRICING_PARAMS,
-      standardSize: toBN('10'),
+      standardSize: toBN('50'),
       spotPriceFeeCoefficient: toBN('0.001'),
+      vegaFeeCoefficient: toBN('60'),
     };
 
     lyraTestSystem = await TestSystem.deploy(deployer, true, false, { pricingParams });
@@ -224,8 +225,9 @@ describe('Covered Call Delta Strategy integration test', async () => {
       // significantly increasing lyra spot fees to 2% of spot to make premiums below threshold
       let pricingParams: PricingParametersStruct = {
         ...DEFAULT_PRICING_PARAMS,
-        standardSize: toBN('10'),
-        spotPriceFeeCoefficient: toBN('0.02'),
+        standardSize: toBN('50'),
+        spotPriceFeeCoefficient: toBN('0.5'),
+        vegaFeeCoefficient: toBN('60'),
       };
       await lyraTestSystem.optionMarketPricer.setPricingParams(pricingParams);
 
@@ -233,7 +235,12 @@ describe('Covered Call Delta Strategy integration test', async () => {
       await expect(vault.connect(randomUser).trade(strikes[4])).to.be.revertedWith('TotalCostOutsideOfSpecifiedBounds');
 
       // resetting back to normal
-      pricingParams = { ...pricingParams, spotPriceFeeCoefficient: toBN('0.001') };
+      pricingParams = {
+        ...pricingParams,
+        standardSize: toBN('50'),
+        spotPriceFeeCoefficient: toBN('0.001'),
+        vegaFeeCoefficient: toBN('60'),
+      };
       await lyraTestSystem.optionMarketPricer.setPricingParams(pricingParams);
     });
 
@@ -372,7 +379,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, spotPrice, 'sETH');
 
       // initiate withdraw for later test
-      await vault.connect(randomUser2).initiateWithdraw(toBN('50'));
+      await vault.connect(randomUser2).initiateWithdraw(toBN('25'));
     });
     before('create new board', async () => {
       await TestSystem.marketActions.createBoard(lyraTestSystem, boardParameter);
@@ -394,7 +401,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
       const sethAfter = await seth.balanceOf(randomUser2.address);
 
-      expect(sethAfter.sub(sethBefore).gt(toBN('50'))).to.be.true;
+      expect(sethAfter.sub(sethBefore).gt(toBN('25'))).to.be.true;
     });
 
     before('make a trade', async () => {
@@ -457,7 +464,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
       const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
       expect(fullCloseAmount).to.be.gt(0);
-      await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(2));
+      await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(6));
       const postReduceBal = await susd.balanceOf(strategy.address);
       expect(postReduceBal).to.be.lt(preReduceBal);
     });
@@ -477,7 +484,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
       const fullCloseAmount = await strategy.getAllowedCloseAmount(position, strikePrice, expiry.sub(10)); //account for time passing
       expect(fullCloseAmount).to.be.gt(0);
-      await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(4));
+      await vault.connect(randomUser).reducePosition(positionId, fullCloseAmount.div(15));
       const postReduceBal = await susd.balanceOf(strategy.address);
       expect(postReduceBal).to.be.lt(preReduceBal);
     });
