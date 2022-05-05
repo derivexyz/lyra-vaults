@@ -29,7 +29,6 @@ contract StrategyBase is VaultAdapter {
 
   mapping(uint => uint) public lastTradeTimestamp;
 
-  uint public activeExpiry;
   uint[] public activeStrikeIds;
   mapping(uint => uint) public strikeToPositionId;
 
@@ -90,16 +89,10 @@ contract StrategyBase is VaultAdapter {
   ///////////////////
 
   /**
-   * @dev set the expiry for the next round
-   */
-  function _setExpiry(uint expiry) internal {
-    activeExpiry = expiry;
-  }
-
-  /**
    * @dev exchange asset back to collateral asset and send it back to the vault
+   * @dev override this function if you want to customize asset management flow
    */
-  function _returnFundsToVaut() internal {
+  function _returnFundsToVaut() internal virtual {
     ExchangeRateParams memory exchangeParams = getExchangeParams();
     uint quoteBal = quoteAsset.balanceOf(address(this));
 

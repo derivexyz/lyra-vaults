@@ -41,6 +41,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   }
 
   DeltaLongStrategyDetail public strategyDetail;
+  uint public activeExpiry;
 
   ///////////
   // ADMIN //
@@ -68,7 +69,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   function setBoard(uint boardId) external onlyVault {
     Board memory board = getBoard(boardId);
     require(_isValidExpiry(board.expiry), "invalid board");
-    _setExpiry(board.expiry);
+    activeExpiry = board.expiry;
   }
 
   /**
