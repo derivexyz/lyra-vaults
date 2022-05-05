@@ -9,15 +9,15 @@ import "hardhat/console.sol";
 import "../interfaces/IStrategy.sol";
 
 // Lyra
-import {VaultAdapter} from "@lyrafinance/core/contracts/periphery/VaultAdapter.sol";
-import {GWAVOracle} from "@lyrafinance/core/contracts/periphery/GWAVOracle.sol";
+import {VaultAdapter} from "@lyrafinance/protocol/contracts/periphery/VaultAdapter.sol";
+import {GWAVOracle} from "@lyrafinance/protocol/contracts/periphery/GWAVOracle.sol";
 
 // Libraries
 import {Vault} from "../libraries/Vault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {LyraVault} from "../core/LyraVault.sol";
-import {DecimalMath} from "@lyrafinance/core/contracts/synthetix/DecimalMath.sol";
-import {SignedDecimalMath} from "@lyrafinance/core/contracts/synthetix/SignedDecimalMath.sol";
+import {DecimalMath} from "@lyrafinance/protocol/contracts/synthetix/DecimalMath.sol";
+import {SignedDecimalMath} from "@lyrafinance/protocol/contracts/synthetix/SignedDecimalMath.sol";
 
 // StrategyBase to inherit
 import {StrategyBase} from "./StrategyBase.sol";
