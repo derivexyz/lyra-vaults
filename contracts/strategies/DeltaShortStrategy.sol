@@ -188,7 +188,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
       TradeInputParameters({
         strikeId: strike.id,
         positionId: strikeToPositionId[strike.id],
-        iterations: 4,
+        iterations: 3,
         optionType: optionType,
         amount: strategyDetail.size,
         setCollateralTo: setCollateralTo,
@@ -240,7 +240,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     });
 
     TradeResult memory result;
-    if (!_isOutsideDeltaCutoff(strike.id)) {
+    if (!_isOutsideDeltaCutoff(strike.id) && !_isWithinTradingCutoff(strike.id)) {
       result = closePosition(tradeParams);
     } else {
       // will pay less competitive price to close position

@@ -11,7 +11,7 @@ Let's go through an example of building a new strategy called `DeltaShortStrateg
 Outline: 
 1. [Setup](#setup)
 3. [Strategy parameters](#params)
-4. [Approving strikeId](#approval)
+4. [Screening strikeId](#screen)
 5. [Selling calls](#selling)
 6. [Reducing positions](#reducing)
 7. [Settling positions and returning funds](#settling)
@@ -73,7 +73,7 @@ function setBoard(uint boardId) external onlyVault {
 }
 ```
 
-### Selling Calls <a name="approval"></a>
+### Screening strikeId <a name="screen"></a>
 
 The vault sells strikes whenever anyone "pokes" the vault by calling `LyraVault.trade(strikeId)`. To ensure only valid trades are made we must `require` several conditions:
 
@@ -83,6 +83,19 @@ require(
   lastTradeTimestamp[strikeId] + strategyDetail.minTradeInterval <= block.timestamp,
   "min time interval not passed"
 );
+```
+
+At times of high volatility, we'd like the vault to pause trading as the Lyra market may not have properly arb'd vols or could be undergoing an attack. To define "high volatility", we compare the GWAV vol with `GWAVOracle.volGWAV()` with the spot vols (queried using `LyraAdapter.getVols()`)
+```solidity
+require(_isValidVolVariance(strikeId), "vol variance exceeded");
+
+function _isValidVolVariance(uint strikeId) internal view returns (bool isValid) {
+  uint volGWAV = gwavOracle.volGWAV(strikeId, strategyDetail.gwavPeriod);
+  uint volSpot = getVols(_toDynamic(strikeId))[0];
+
+  uint volDiff = (volGWAV >= volSpot) ? volGWAV - volSpot : volSpot - volGWAV;
+  return isValid = volDiff < strategyDetail.maxVolVariance;
+}
 ```
 
 Make sure both the strike falls within the correct delta and vol bounds. Note, we use `getStrikes()`, `getVols()` and `getDeltas()` functions from `LyraAdapter.sol` to easily get all market data. 
@@ -181,7 +194,7 @@ function _sellStrike(
     TradeInputParameters({
       strikeId: strike.id,
       positionId: strikeToPositionId[strike.id], // new positions must set this to 0
-      iterations: 4, // number of sub orders to break trade into to reduce slippage
+      iterations: 3, // number of sub orders to break trade into to reduce slippage but at higher gas expense
       optionType: optionType,
       amount: strategyDetail.size,
       setCollateralTo: setCollateralTo,
@@ -205,8 +218,64 @@ function _sellStrike(
 
 All of the screening logic + call selling can now be packaged up into the `doTrade()` function.
 ### Reducing Positions <a name="reducing"></a>
+With leverage thrown into the mix, we'd like to add the ability for the vault to reduce risky positions. Since the vault aims to use 100% of it's funds to sell calls, reducing the `position.amount` is more reliable as opposed to adding collateral as the vault may not have funds available. 
 
+For this, we first create `getAllowedCloseAmount()` to ensure we only close the amount necessary to stay above our `collatBuffer` param:
+```solidity
+function getAllowedCloseAmount(
+  OptionPosition memory position,
+  uint strikePrice,
+  uint strikeExpiry
+) public view returns (uint closeAmount) {
+  ExchangeRateParams memory exchangeParams = getExchangeParams(); // LyraAdapter function to get Synthetix market info
+  uint minCollatPerAmount = _getBufferCollateral(strikePrice, strikeExpiry, exchangeParams.spotPrice, 1e18);
 
+  closeAmount = position.collateral < minCollatPerAmount.multiplyDecimal(position.amount)
+    ? position.amount - position.collateral.divideDecimal(minCollatPerAmount)
+    : 0;
+}
+```
+
+Can now compose `tradeParams` required when partially closing the position:
+```solidity
+uint maxExpectedPremium = _getPremiumLimit(strike, strategyDetail.maxVol, strategyDetail.size);
+TradeInputParameters memory tradeParams = TradeInputParameters({
+  strikeId: position.strikeId,
+  positionId: position.positionId,
+  iterations: 3,
+  optionType: optionType,
+  amount: closeAmount,
+  setCollateralTo: position.collateral,
+  minTotalCost: type(uint).min,
+  maxTotalCost: maxExpectedPremium,
+  rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
+});
+```
+
+Lastly, in the Lyra Avalon release positions can be closed out no matter the delta or time to expiry, albeit at a higher fee. We must now determine whether we require `forceClose()` or can simply `closePosition()`:
+if (!_isOutsideDeltaCutoff(strike.id) && !_isWithinTradingCutoff(strike.id)) {
+  result = closePosition(tradeParams);
+} else {
+  // will pay less competitive price to close position
+  result = forceClosePosition(tradeParams);
+}
+
+`StrategyBase.sol` provides `_isOutsideDeltaCutoff()` and `_isWithinTradingCutoff()` to help determine whether force closing is necessary:
+```solidity
+function _isOutsideDeltaCutoff(uint strikeId) internal view returns (bool) {
+  MarketParams memory marketParams = getMarketParams(); // LyraAdapter function to get Lyra market params
+  int callDelta = getDeltas(_toDynamic(strikeId))[0];
+  return callDelta > (int(DecimalMath.UNIT) - marketParams.deltaCutOff) || callDelta < marketParams.deltaCutOff;
+}
+
+function _isWithinTradingCutoff(uint strikeId) internal view returns (bool) {
+  MarketParams memory marketParams = getMarketParams(); // LyraAdapter function to get Lyra market params
+  Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
+  return strike.expiry - block.timestamp <= marketParams.tradingCutoff;
+}
+```
+
+The above logic can now be packaged up into the `reducePosition()` function which can be "poked" by anyone via `LyraVault.reducePosition()`.
 
 ### Settling Positions and Returning Funds <a name="settling"></a>
   

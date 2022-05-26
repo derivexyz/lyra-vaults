@@ -143,6 +143,15 @@ contract StrategyBase is VaultAdapter {
     return callDelta > (int(DecimalMath.UNIT) - marketParams.deltaCutOff) || callDelta < marketParams.deltaCutOff;
   }
 
+  /**
+   * @dev use latest optionMarket trading cutoff to determine whether trade is too close to expiry
+   */
+  function _isWithinTradingCutoff(uint strikeId) internal view returns (bool) {
+    MarketParams memory marketParams = getMarketParams();
+    Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
+    return strike.expiry - block.timestamp <= marketParams.tradingCutoff;
+  }
+
   //////////////////////////////
   // Active Strike Management //
   //////////////////////////////
