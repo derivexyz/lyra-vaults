@@ -8,9 +8,9 @@ The `lyra-vaults` repo is a round-based options vault able to both buy and sell 
 1. [Installation & Testing](#install)
 3. [Behavior](#behavior)
 4. [Architecture](#architecture)
-5. [Vault Accounting](#vault)
-6. [Strategy](#strategy)
-7. [Deploy](#deploy)
+5. [Vault Accounting](docs/VaultAccounting.md)
+6. [Building a new strategy](docs/BuildingNewStrategy.md)
+7. [Deploy](docs/Deploying.md)
 
 ## Installation & Testing <a name="install"></a>
 
@@ -19,6 +19,8 @@ yarn install --frozen-lockfile
 yarn test
 yarn coverage
 ```
+
+see [Integration Testing](docs/IntegrationTesting.md) for hardhat testing against a full local Lyra market without need for mocks.
 
 ## Behavior <a name="behaviour"></a>
 1. Before round start
@@ -50,13 +52,3 @@ The vault structure is broken down into 3x main components:
 * @lyrafinance/protocol - uses `LyraAdapter.sol` and `GWAVOracle.sol` to interact with Lyra and accrue trading rewards.
 
 This component breakdown accomodates wide range of option strategies as only the contracts in the `strategy` component need to be swapped out for a novel options stratagy.
-
-## Vault Accounting <a name="vault"></a>
-
-
-
-## Strategy <a name="strategy"></a>
-
-
-
-## Deploy <a name="deploy"></a>
