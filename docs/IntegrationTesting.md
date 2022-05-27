@@ -2,7 +2,7 @@
 
 Full integration tests between the vault and the Lyra market can be performed using `@lyrafinance/protocol` without the need for mock contracts.
 
-*Note: some details are ommitted for the sake of brevity. Refer to [test/integration-tests/delta-strategy-covered-call.ts](test/integration-tests/delta-strategy-covered-call.ts) for full test.
+*Note: some details are ommitted for the sake of brevity. Refer to [test/integration-tests/delta-strategy-covered-call.ts](test/integration-tests/delta-strategy-covered-call.ts) for full test.*
 
 Outline: 
 1. [Lyra market deploy & overrides](#lyra)
@@ -137,8 +137,6 @@ before('link strategy to vault', async () => {
 });
 ```
 ### Override Lyra params to force a failed trade request <a name="screen"></a>
-
-As an example, let's set custom lyra market params to force a reverted trade request
 
 ```typescript
 it('should revert when min premium < premium calculated with min vol', async () => {
