@@ -1,7 +1,7 @@
 # Building a new strategy <a name="strategy"></a>
 
 Let's go through an example of building a new strategy called `DeltaShortStrategy.sol`:
-* the strategy will sell covered calls for a given `boardId`
+* the strategy will sell covered calls for a given `boardId` but multiple `strikeIds`
 * any option that falls within max/min vol, delta and expiry bounds can be sold
 * `collatPercent` can be set to <100% to leverage up
 * anyone can trigger a trade but with a fixed `size` and `minTradeInterval` between trades to reduce slippage
@@ -253,12 +253,14 @@ TradeInputParameters memory tradeParams = TradeInputParameters({
 ```
 
 Lastly, in the Lyra Avalon release positions can be closed out no matter the delta or time to expiry, albeit at a higher fee. We must now determine whether we require `forceClose()` or can simply `closePosition()`:
+```solidity
 if (!_isOutsideDeltaCutoff(strike.id) && !_isWithinTradingCutoff(strike.id)) {
   result = closePosition(tradeParams);
 } else {
   // will pay less competitive price to close position
   result = forceClosePosition(tradeParams);
 }
+```
 
 `StrategyBase.sol` provides `_isOutsideDeltaCutoff()` and `_isWithinTradingCutoff()` to help determine whether force closing is necessary:
 ```solidity
@@ -278,4 +280,56 @@ function _isWithinTradingCutoff(uint strikeId) internal view returns (bool) {
 The above logic can now be packaged up into the `reducePosition()` function which can be "poked" by anyone via `LyraVault.reducePosition()`.
 
 ### Settling Positions and Returning Funds <a name="settling"></a>
-  
+
+Upon expiry, Lyra bots will auto-settle all options and return funds to the position owners, which in this case is the strategy contract. When the round ends, `LyraVault.startNextRound()` will call `returnFundsAndClearStrikes()`. As this is common pattern that most round-based strategies are expected to follow, we can use `_returnFundsToVault()` and `_clearAllActiveStrikes()` in `StrategyBase.sol` to return all remaining collateral to the vault and clear out the active strike cache.
+
+As some vaults may be base collateralized, `_returnFundsToVault()` also supports auto exchanging of quote premiums into base collat:
+```solidity
+function _returnFundsToVault() internal virtual {
+  ExchangeRateParams memory exchangeParams = getExchangeParams(); // LyraAdapter function to get Synthetix market params
+  uint quoteBal = quoteAsset.balanceOf(address(this));
+
+  if (_isBaseCollat()) {
+    // exchange quote asset to base asset, and send base asset back to vault
+    uint baseBal = baseAsset.balanceOf(address(this));
+    uint minQuoteExpected = quoteBal.divideDecimal(exchangeParams.spotPrice).multiplyDecimal(
+      DecimalMath.UNIT - exchangeParams.baseQuoteFeeRate
+    );
+    uint baseReceived = exchangeFromExactQuote(quoteBal, minQuoteExpected);
+    require(baseAsset.transfer(address(vault), baseBal + baseReceived), "failed to return funds from strategy");
+  } else {
+    // send quote balance directly
+    require(quoteAsset.transfer(address(vault), quoteBal), "failed to return funds from strategy");
+  }
+}
+```
+
+`LyraAdapter.exchangeFromExactQuote()` is used to exchange the earned premiums back into base through the Synthetix spot market.
+
+When getting position status via `_clearAllActiveStrikes()` we can rely on `LyraAdapter.getPositions()`: 
+```solidity
+function _clearAllActiveStrikes() internal {
+  if (activeStrikeIds.length != 0) {
+    for (uint i = 0; i < activeStrikeIds.length; i++) {
+      uint strikeId = activeStrikeIds[i];
+      OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
+      // revert if position state is not settled
+      require(position.state != PositionState.ACTIVE, "cannot clear active position");
+      delete strikeToPositionId[strikeId];
+      delete lastTradeTimestamp[i];
+    }
+    delete activeStrikeIds;
+  }
+}
+```
+
+The final function takes the form:
+```solidity
+function returnFundsAndClearStrikes() external onlyVault {
+  // exchange asset back to collateral asset and send it back to the vault
+  _returnFundsToVault();
+
+  // keep internal storage data on old strikes and positions ids
+  _clearAllActiveStrikes();
+}
+```
