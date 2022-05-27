@@ -90,7 +90,8 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
     await lyraTestSystem.optionGreekCache.updateBoardCachedGreeks(boardId);
 
-    // fast forward so vol gwav can work
+
+    // fast forward so vol GWAP can work
     await lyraEvm.fastForward(600);
   });
 
@@ -587,65 +588,6 @@ describe('Covered Call Delta Strategy integration test', async () => {
     });
 
     it('cannot force close when the price move against our positions.', async () => {
-      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3500'), 'sETH');
-      await expect(vault.connect(manager).emergencyCloseRound()).to.be.revertedWith(
-        'ERC20: transfer amount exceeds balance',
-      );
-    });
-    it('should be able to force close all positions, if price goes in favor of us', async () => {
-      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('2500'), 'sETH');
-      const storedStrikeId1 = await strategy.activeStrikeIds(0);
-      const storedStrikeId2 = await strategy.activeStrikeIds(1);
-      await vault.connect(manager).emergencyCloseRound();
-      expect(await strategy.strikeToPositionId(storedStrikeId1)).to.be.eq(0);
-      expect(await strategy.strikeToPositionId(storedStrikeId2)).to.be.eq(0);
-    });
-  });
-  describe('start round 3: stimulate emergency forceClose', async () => {
-    let strikes: BigNumber[] = [];
-    before('create new board', async () => {
-      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3000'), 'sETH');
-      await TestSystem.marketActions.createBoard(lyraTestSystem, boardParameter);
-      const boards = await lyraTestSystem.optionMarket.getLiveBoards();
-      boardId = boards[0];
-
-      strikes = await lyraTestSystem.optionMarket.getBoardStrikes(boardId);
-    });
-
-    before('start the next round', async () => {
-      await lyraEvm.fastForward(lyraConstants.DAY_SEC);
-      await vault.connect(manager).startNextRound(boardId);
-    });
-
-    it('should trade when delta and vol are within range', async () => {
-      await vault.connect(randomUser).trade(strikes[3]);
-      // active strike is updated
-      const storedStrikeId = await strategy.activeStrikeIds(0);
-      expect(storedStrikeId.eq(strikes[3])).to.be.true;
-
-      // check that position size is correct
-      const positionId = await strategy.strikeToPositionId(storedStrikeId);
-      const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
-
-      expect(position.amount.eq(strategyDetail.size)).to.be.true;
-    });
-
-    it('should be able to trade a higher strike if spot price goes up', async () => {
-      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3125'), 'sETH');
-
-      // triger with new strike (3550)
-      await vault.connect(randomUser).trade(strikes[4]);
-
-      // check that active strikes are updated
-      const storedStrikeId = await strategy.activeStrikeIds(1);
-      expect(storedStrikeId.eq(strikes[4])).to.be.true;
-      const positionId = await strategy.strikeToPositionId(storedStrikeId);
-      const [position] = await lyraTestSystem.optionToken.getOptionPositions([positionId]);
-
-      expect(position.amount.eq(strategyDetail.size)).to.be.true;
-    });
-
-    it('cannot foce close when the price move against our positions.', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3500'), 'sETH');
       await expect(vault.connect(manager).forceClose()).to.be.revertedWith('ERC20: transfer amount exceeds balance');
     });

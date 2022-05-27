@@ -122,13 +122,16 @@ contract StrategyBase is VaultAdapter {
   ) internal {
     // closes excess position with premium balance
 
+    // if it's a full close, take out our collateral as well.
+    uint setCollateralTo = position.amount == closeAmount ? 0 : position.collateral;
+
     TradeInputParameters memory tradeParams = TradeInputParameters({
       strikeId: position.strikeId,
       positionId: position.positionId,
       iterations: 3,
       optionType: optionType,
       amount: closeAmount,
-      setCollateralTo: position.collateral,
+      setCollateralTo: setCollateralTo,
       minTotalCost: minTotalCost,
       maxTotalCost: maxTotalCost,
       rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
