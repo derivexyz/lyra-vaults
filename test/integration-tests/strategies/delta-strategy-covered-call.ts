@@ -91,7 +91,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
     await lyraTestSystem.optionGreekCache.updateBoardCachedGreeks(boardId);
 
-    // fast forward do vol gwap can work
+    // fast forward so vol GWAP can work
     await lyraEvm.fastForward(600);
   });
 
@@ -277,7 +277,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
       expect(position.collateral.eq(collateralToAdd)).to.be.true;
     });
 
-    it('should revert when user try to trigger another trade during cooldown', async () => {
+    it('should revert when user try to trigger another trade during cool-down', async () => {
       await expect(vault.connect(randomUser).trade(strikes[3])).to.be.revertedWith('min time interval not passed');
     });
 
@@ -302,7 +302,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
     it('should be able to trade a higher strike if spot price goes up', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3125'), 'sETH');
 
-      // triger with new strike (3550)
+      // trigger with new strike (3550)
       await vault.connect(randomUser).trade(strikes[4]);
 
       // check that active strikes are updated
@@ -326,7 +326,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
       const receipt = await vault.depositReceipts(randomUser.address);
       expect(receipt.amount.eq(additionalDepositAmount)).to.be.true;
     });
-    it('fastforward to the expiry', async () => {
+    it('fast-forward to the expiry', async () => {
       await lyraEvm.fastForward(boardParameter.expiresIn);
     });
     it('should revert when closeRound is called before options are settled', async () => {
@@ -356,15 +356,15 @@ describe('Covered Call Delta Strategy integration test', async () => {
       await vault.closeRound();
 
       const susdInStrategyAfter = await susd.balanceOf(strategy.address);
-      const ethdInStrategyAfter = await seth.balanceOf(strategy.address);
-      const ethInValutAfter = await seth.balanceOf(vault.address);
+      const ethInStrategyAfter = await seth.balanceOf(strategy.address);
+      const ethInVaultAfter = await seth.balanceOf(vault.address);
 
       // strategy should be empty after close round
       expect(susdInStrategyAfter.isZero()).to.be.true;
-      expect(ethdInStrategyAfter.isZero()).to.be.true;
+      expect(ethInStrategyAfter.isZero()).to.be.true;
 
       // the vault should get higher than the amount get from settlement, because of the premium
-      expect(ethInValutAfter.sub(ethInVaultBefore).gt(ethInStrategyBefore));
+      expect(ethInVaultAfter.sub(ethInVaultBefore).gt(ethInStrategyBefore));
     });
   });
   describe('start round 2', async () => {
@@ -509,7 +509,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
     });
 
     // don't need to settle options as optionPosition.status = LIQUIDATED
-    it.skip('fastforward to the expiry and settle options', async () => {
+    it.skip('fast-forward to the expiry and settle options', async () => {
       // @notice: the shortCollateral contract won't have enough seth to pay out (settlement) after liquidation.
       //          so we need to top it up.
       await seth.mint(lyraTestSystem.shortCollateral.address, toBN('10'));
@@ -532,15 +532,15 @@ describe('Covered Call Delta Strategy integration test', async () => {
       await vault.closeRound();
 
       const susdInStrategyAfter = await susd.balanceOf(strategy.address);
-      const ethdInStrategyAfter = await seth.balanceOf(strategy.address);
-      const ethInValutAfter = await seth.balanceOf(vault.address);
+      const ethInStrategyAfter = await seth.balanceOf(strategy.address);
+      const ethInVaultAfter = await seth.balanceOf(vault.address);
 
       // strategy should be empty after close round
       expect(susdInStrategyAfter.isZero()).to.be.true;
-      expect(ethdInStrategyAfter.isZero()).to.be.true;
+      expect(ethInStrategyAfter.isZero()).to.be.true;
 
       // the vault should get higher than the amount get from settlement, because of the premium
-      expect(ethInValutAfter.sub(ethInVaultBefore).gt(ethInStrategyBefore));
+      expect(ethInVaultAfter.sub(ethInVaultBefore).gt(ethInStrategyBefore));
     });
   });
   describe('start round 3: stimulate emergency forceClose', async () => {
@@ -575,7 +575,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
     it('should be able to trade a higher strike if spot price goes up', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3125'), 'sETH');
 
-      // triger with new strike (3550)
+      // trigger with new strike (3550)
       await vault.connect(randomUser).trade(strikes[4]);
 
       // check that active strikes are updated
@@ -587,7 +587,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
       expect(position.amount.eq(strategyDetail.size)).to.be.true;
     });
 
-    it('cannot foce close when the price move against our positions.', async () => {
+    it('cannot force close when the price move against our positions.', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3500'), 'sETH');
       await expect(vault.connect(manager).forceClose()).to.be.revertedWith('ERC20: transfer amount exceeds balance');
     });
