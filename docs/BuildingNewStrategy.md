@@ -57,7 +57,7 @@ struct DeltaShortStrategyDetail {
 }
 ```
 
-We create `setStrategyDetail()` to allow the `manager` to swap out strategies in between rounds if needed as well as `setBoard()` which is called by `LyraVault.startNextRound()` to determine which board to trade:
+We create `setStrategyDetail()` to allow the `manager` to update strategy parameters in between rounds.
 
 ```solidity
 function setStrategyDetail(DeltaShortStrategyDetail memory _deltaStrategy) external onlyOwner {
@@ -65,6 +65,8 @@ function setStrategyDetail(DeltaShortStrategyDetail memory _deltaStrategy) exter
   require(!roundInProgress, "cannot change strategy if round is active");
   strategyDetail = _deltaStrategy;
 }
+
+`setBoard()` is also created to ensure `LyraVault.sol` always trades a valid expiry. This is called by `LyraVault.startNextRound()`:
 
 function setBoard(uint boardId) external onlyVault {
   Board memory board = getBoard(boardId);
