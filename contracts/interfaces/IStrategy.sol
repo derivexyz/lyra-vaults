@@ -18,7 +18,7 @@ interface IStrategy {
     address rewardRecipient
   ) external;
 
-  function forceCloseAll(address lyraRewardRecipient) external;
+  function emergencyCloseAll(address lyraRewardRecipient) external;
 
   function returnFundsAndClearStrikes() external;
 }

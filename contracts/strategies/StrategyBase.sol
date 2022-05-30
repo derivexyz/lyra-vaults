@@ -113,7 +113,12 @@ contract StrategyBase is VaultAdapter {
   // Trade Parameter Helpers //
   /////////////////////////////
 
-  function _closePosition(
+  /**
+   * @dev Automatically decide between close and forceClose
+   * depending on whether deltaCutoff or tradingCutoff are crossed
+   */
+
+  function _closeOrForceClosePosition(
     OptionPosition memory position,
     uint closeAmount,
     uint minTotalCost,
@@ -138,10 +143,10 @@ contract StrategyBase is VaultAdapter {
     });
 
     TradeResult memory result;
-    if (!_isOutsideDeltaCutoff(position.strikeId)) {
+    if (!_isOutsideDeltaCutoff(position.strikeId) && !_isWithinTradingCutoff(position.strikeId)) {
       result = closePosition(tradeParams);
     } else {
-      // will pay less competitive price to close position
+      // will pay less competitive price to close position but bypasses Lyra delta/trading cutoffs
       result = forceClosePosition(tradeParams);
     }
     require(result.totalCost <= maxTotalCost, "premium paid is above max expected premium");
