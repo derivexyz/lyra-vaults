@@ -114,6 +114,45 @@ contract StrategyBase is VaultAdapter {
   /////////////////////////////
 
   /**
+   * @dev Automatically decide between close and forceClose
+   * depending on whether deltaCutoff or tradingCutoff are crossed
+   */
+
+  function _closeOrForceClosePosition(
+    OptionPosition memory position,
+    uint closeAmount,
+    uint minTotalCost,
+    uint maxTotalCost,
+    address lyraRewardRecipient
+  ) internal {
+    // closes excess position with premium balance
+
+    // if it's a full close, take out our collateral as well.
+    uint setCollateralTo = position.amount == closeAmount ? 0 : position.collateral;
+
+    TradeInputParameters memory tradeParams = TradeInputParameters({
+      strikeId: position.strikeId,
+      positionId: position.positionId,
+      iterations: 3,
+      optionType: optionType,
+      amount: closeAmount,
+      setCollateralTo: setCollateralTo,
+      minTotalCost: minTotalCost,
+      maxTotalCost: maxTotalCost,
+      rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
+    });
+
+    TradeResult memory result;
+    if (!_isOutsideDeltaCutoff(position.strikeId) && !_isWithinTradingCutoff(position.strikeId)) {
+      result = closePosition(tradeParams);
+    } else {
+      // will pay less competitive price to close position but bypasses Lyra delta/trading cutoffs
+      result = forceClosePosition(tradeParams);
+    }
+    require(result.totalCost <= maxTotalCost, "premium paid is above max expected premium");
+  }
+
+  /**
    * @dev get minimum premium that the vault should receive.
    * param listingId lyra option listing id
    * param size size of trade in Lyra standard sizes
@@ -185,7 +224,7 @@ contract StrategyBase is VaultAdapter {
         // revert if position state is not settled
         require(position.state != PositionState.ACTIVE, "cannot clear active position");
         delete strikeToPositionId[strikeId];
-        delete lastTradeTimestamp[i];
+        delete lastTradeTimestamp[strikeId];
       }
       delete activeStrikeIds;
     }

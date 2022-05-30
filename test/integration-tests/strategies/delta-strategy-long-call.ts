@@ -409,5 +409,30 @@ describe('Long Call Strategy integration test', async () => {
     it('should revert when trying to reduce a position', async () => {
       await expect(vault.connect(randomUser).reducePosition(positionId, 0)).to.be.revertedWith('not supported');
     });
+
+    it('should be able to emergency close when the price move down, settled with 0 profit.', async () => {
+      const balanceBefore = (await susd.balanceOf(strategy.address)).add(await susd.balanceOf(vault.address));
+
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('2500'), 'sETH');
+      const storedStrikeId1 = await strategy.activeStrikeIds(0);
+
+      await vault.connect(manager).emergencyCloseRound();
+      const balanceAfter = await susd.balanceOf(vault.address);
+
+      expect(await strategy.strikeToPositionId(storedStrikeId1)).to.be.eq(0);
+      expect(balanceAfter).to.be.eq(balanceBefore);
+    });
+    it('should be able to emergency close when price goes up, settled with less profit', async () => {
+      const balanceBefore = (await susd.balanceOf(strategy.address)).add(await susd.balanceOf(vault.address));
+      await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3500'), 'sETH');
+      const storedStrikeId1 = await strategy.activeStrikeIds(0);
+
+      await vault.connect(manager).emergencyCloseRound();
+
+      const balanceAfter = await susd.balanceOf(vault.address);
+
+      expect(await strategy.strikeToPositionId(storedStrikeId1)).to.be.eq(0);
+      expect(balanceAfter).to.be.gt(balanceBefore);
+    });
   });
 });

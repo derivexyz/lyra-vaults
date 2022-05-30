@@ -62,10 +62,6 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     strategyDetail = _deltaStrategy;
   }
 
-  ///////////////////
-  // VAULT ACTIONS //
-  ///////////////////
-
   /**
    * @dev set the board id that will be traded for the next round
    * @param boardId lyra board Id.
@@ -75,6 +71,10 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     require(_isValidExpiry(board.expiry), "invalid board");
     activeExpiry = board.expiry;
   }
+
+  ///////////////////
+  // VAULT ACTIONS //
+  ///////////////////
 
   /**
    * @dev convert premium in quote asset into collateral asset and send it back to the vault.
@@ -227,27 +227,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
 
     // closes excess position with premium balance
     uint maxExpectedPremium = _getPremiumLimit(strike, strategyDetail.maxVol, strategyDetail.size);
-    TradeInputParameters memory tradeParams = TradeInputParameters({
-      strikeId: position.strikeId,
-      positionId: position.positionId,
-      iterations: 3,
-      optionType: optionType,
-      amount: closeAmount,
-      setCollateralTo: position.collateral,
-      minTotalCost: type(uint).min,
-      maxTotalCost: maxExpectedPremium,
-      rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
-    });
-
-    TradeResult memory result;
-    if (!_isOutsideDeltaCutoff(strike.id) && !_isWithinTradingCutoff(strike.id)) {
-      result = closePosition(tradeParams);
-    } else {
-      // will pay less competitive price to close position
-      result = forceClosePosition(tradeParams);
-    }
-
-    require(result.totalCost <= maxExpectedPremium, "premium paid is above max expected premium");
+    _closeOrForceClosePosition(position, closeAmount, 0, maxExpectedPremium, lyraRewardRecipient);
 
     // return closed collateral amount
     if (_isBaseCollat()) {
@@ -257,6 +237,23 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
       // quote collateral
       quoteAsset.transfer(address(vault), closeAmount);
     }
+  }
+
+  /**
+   * @dev close all outstanding positions regardless of collat and send funds back to vault
+   */
+  function emergencyCloseAll(address lyraRewardRecipient) external onlyVault {
+    // the vault might not hold enough sUSD to close all positions, will need someone to topup before doing so.
+    for (uint i = 0; i < activeStrikeIds.length; i++) {
+      uint strikeId = activeStrikeIds[i];
+      OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
+      // revert if position state is not settled
+      _closeOrForceClosePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
+      delete strikeToPositionId[strikeId];
+      delete lastTradeTimestamp[strikeId];
+    }
+
+    _returnFundsToVault();
   }
 
   /**
