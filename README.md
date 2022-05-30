@@ -35,6 +35,7 @@ see [Integration Testing](docs/IntegrationTesting.md) for hardhat testing agains
     1. anyone can "poke" the vault to `trade(strikeId)` or `reducePosition(positionId, closeAmount)`
     2. the strategy contract determines whether the requested trade or reducePosition are valid
     3. if valid, strategy will transfer required funds from `LyraVault` to itself and execute the trade
+    4. Premiums earned and option positions are all held by the strategy until `reducePosition()` is called or round ends
 4. On round end
     1. unlocked funds from last round are accounted for
     2. all funds are moved from the strategy contract back to the vault.  
@@ -47,8 +48,8 @@ see [Integration Testing](docs/IntegrationTesting.md) for hardhat testing agains
 ## Architecture <a name="architecture"></a>
 
 The vault structure is broken down into 3x main components:
-* vault accounting - contracts/libraries in `core/` and `libraries/` that manage share deposit/withdrawal/NAV logic as well as roll-over logic between rounds
-* strategy - contracts in `strategies/` that determine what positions to trade.
-* @lyrafinance/protocol - uses `LyraAdapter.sol` and `GWAVOracle.sol` to interact with Lyra and accrue trading rewards.
+* vault accounting - contracts/libraries in `core/` and `libraries/` that manage share deposit/withdrawal/NAV logic as well as roll-over logic between rounds. 
+* strategy - contracts in `strategies/` that determine what positions to trade. Everytime a trade is made, `StrategyBase.sol` takes funds from the `LyraVault.sol` and keep earned premiums until a position is partially closed or the round is ended. 
+* @lyrafinance/protocol - uses `LyraAdapter.sol` and `GWAVOracle.sol` to interact with Lyra and accrue trading rewards
 
 This component breakdown accomodates wide range of option strategies as only the contracts in the `strategy` component need to be swapped out for a novel options stratagy.
