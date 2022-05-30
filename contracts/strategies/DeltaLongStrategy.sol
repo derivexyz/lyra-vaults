@@ -1,6 +1,5 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
-pragma experimental ABIEncoderV2;
 
 // Hardhat
 import "hardhat/console.sol";
@@ -77,7 +76,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
    */
   function returnFundsAndClearStrikes() external onlyVault {
     // exchange asset back to collateral asset and send it back to the vault
-    _returnFundsToVaut();
+    _returnFundsToVault();
 
     // keep internal storage data on old strikes and positions ids
     _clearAllActiveStrikes();
@@ -135,20 +134,20 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
   }
 
   /**
-   * forced to close all out standing positions, and send funds back to vault
+   * @dev close all outstanding positions regardless of collat and send funds back to vault
    */
-  function forceCloseAll(address lyraRewardRecipient) external onlyVault {
-    // the vault might not hold enough sUSD to close all positions, will need someone to tapup before doing so.
+  function emergencyCloseAll(address lyraRewardRecipient) external onlyVault {
+    // the vault might not hold enough sUSD to close all positions, will need someone to topup before doing so.
     for (uint i = 0; i < activeStrikeIds.length; i++) {
       uint strikeId = activeStrikeIds[i];
       OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
       // revert if position state is not settled
-      _closePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
+      _closeOrForceClosePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
       delete strikeToPositionId[strikeId];
       delete lastTradeTimestamp[strikeId];
     }
 
-    _returnFundsToVaut();
+    _returnFundsToVault();
   }
 
   /**

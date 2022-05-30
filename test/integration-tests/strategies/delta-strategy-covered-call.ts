@@ -1,6 +1,5 @@
 import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/protocol';
 import { PositionState, toBN } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
-import { DEFAULT_PRICING_PARAMS } from '@lyrafinance/protocol/dist/test/utils/defaultParams';
 import { TestSystemContractsType } from '@lyrafinance/protocol/dist/test/utils/deployTestSystem';
 import { PricingParametersStruct } from '@lyrafinance/protocol/dist/typechain-types/OptionMarketViewer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -67,7 +66,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
   before('deploy lyra core', async () => {
     const pricingParams: PricingParametersStruct = {
-      ...DEFAULT_PRICING_PARAMS,
+      ...TestSystem.defaultParams.pricingParams,
       standardSize: toBN('50'),
       spotPriceFeeCoefficient: toBN('0.001'),
       vegaFeeCoefficient: toBN('60'),
@@ -91,7 +90,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
     await lyraTestSystem.optionGreekCache.updateBoardCachedGreeks(boardId);
 
-    // fast forward so vol GWAP can work
+    // fast forward so vol gwav can work
     await lyraEvm.fastForward(600);
   });
 
@@ -223,9 +222,9 @@ describe('Covered Call Delta Strategy integration test', async () => {
     });
 
     it('should revert when min premium < premium calculated with min vol', async () => {
-      // significantly increasing lyra spot fees to 2% of spot to make premiums below threshold
+      // significantly increasing lyra spot fees to 50% of spot to make premiums below threshold
       let pricingParams: PricingParametersStruct = {
-        ...DEFAULT_PRICING_PARAMS,
+        ...TestSystem.defaultParams.pricingParams,
         standardSize: toBN('50'),
         spotPriceFeeCoefficient: toBN('0.5'),
         vegaFeeCoefficient: toBN('60'),
@@ -589,13 +588,15 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
     it('cannot force close when the price move against our positions.', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3500'), 'sETH');
-      await expect(vault.connect(manager).forceClose()).to.be.revertedWith('ERC20: transfer amount exceeds balance');
+      await expect(vault.connect(manager).emergencyCloseRound()).to.be.revertedWith(
+        'ERC20: transfer amount exceeds balance',
+      );
     });
     it('should be able to force close all positions, if price goes in favor of us', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('2500'), 'sETH');
       const storedStrikeId1 = await strategy.activeStrikeIds(0);
       const storedStrikeId2 = await strategy.activeStrikeIds(1);
-      await vault.connect(manager).forceClose();
+      await vault.connect(manager).emergencyCloseRound();
       expect(await strategy.strikeToPositionId(storedStrikeId1)).to.be.eq(0);
       expect(await strategy.strikeToPositionId(storedStrikeId2)).to.be.eq(0);
     });
