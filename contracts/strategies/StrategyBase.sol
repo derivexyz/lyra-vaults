@@ -1,6 +1,5 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
-pragma experimental ABIEncoderV2;
 
 // Hardhat
 import "hardhat/console.sol";
@@ -92,7 +91,7 @@ contract StrategyBase is VaultAdapter {
    * @dev exchange asset back to collateral asset and send it back to the vault
    * @dev override this function if you want to customize asset management flow
    */
-  function _returnFundsToVaut() internal virtual {
+  function _returnFundsToVault() internal virtual {
     ExchangeRateParams memory exchangeParams = getExchangeParams();
     uint quoteBal = quoteAsset.balanceOf(address(this));
 
@@ -142,6 +141,15 @@ contract StrategyBase is VaultAdapter {
     MarketParams memory marketParams = getMarketParams();
     int callDelta = getDeltas(_toDynamic(strikeId))[0];
     return callDelta > (int(DecimalMath.UNIT) - marketParams.deltaCutOff) || callDelta < marketParams.deltaCutOff;
+  }
+
+  /**
+   * @dev use latest optionMarket trading cutoff to determine whether trade is too close to expiry
+   */
+  function _isWithinTradingCutoff(uint strikeId) internal view returns (bool) {
+    MarketParams memory marketParams = getMarketParams();
+    Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
+    return strike.expiry - block.timestamp <= marketParams.tradingCutoff;
   }
 
   //////////////////////////////

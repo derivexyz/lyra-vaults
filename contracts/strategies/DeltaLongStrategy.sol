@@ -1,6 +1,5 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
-pragma experimental ABIEncoderV2;
 
 // Hardhat
 import "hardhat/console.sol";
@@ -77,7 +76,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
    */
   function returnFundsAndClearStrikes() external onlyVault {
     // exchange asset back to collateral asset and send it back to the vault
-    _returnFundsToVaut();
+    _returnFundsToVault();
 
     // keep internal storage data on old strikes and positions ids
     _clearAllActiveStrikes();

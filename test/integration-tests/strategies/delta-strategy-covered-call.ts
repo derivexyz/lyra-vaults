@@ -1,6 +1,5 @@
 import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/protocol';
 import { PositionState, toBN } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
-import { DEFAULT_PRICING_PARAMS } from '@lyrafinance/protocol/dist/test/utils/defaultParams';
 import { TestSystemContractsType } from '@lyrafinance/protocol/dist/test/utils/deployTestSystem';
 import { PricingParametersStruct } from '@lyrafinance/protocol/dist/typechain-types/OptionMarketViewer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -67,7 +66,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
   before('deploy lyra core', async () => {
     const pricingParams: PricingParametersStruct = {
-      ...DEFAULT_PRICING_PARAMS,
+      ...TestSystem.defaultParams.pricingParams,
       standardSize: toBN('50'),
       spotPriceFeeCoefficient: toBN('0.001'),
       vegaFeeCoefficient: toBN('60'),
@@ -91,7 +90,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
     await lyraTestSystem.optionGreekCache.updateBoardCachedGreeks(boardId);
 
-    // fast forward do vol gwap can work
+    // fast forward so vol gwap can work
     await lyraEvm.fastForward(600);
   });
 
@@ -223,9 +222,9 @@ describe('Covered Call Delta Strategy integration test', async () => {
     });
 
     it('should revert when min premium < premium calculated with min vol', async () => {
-      // significantly increasing lyra spot fees to 2% of spot to make premiums below threshold
+      // significantly increasing lyra spot fees to 50% of spot to make premiums below threshold
       let pricingParams: PricingParametersStruct = {
-        ...DEFAULT_PRICING_PARAMS,
+        ...TestSystem.defaultParams.pricingParams,
         standardSize: toBN('50'),
         spotPriceFeeCoefficient: toBN('0.5'),
         vegaFeeCoefficient: toBN('60'),

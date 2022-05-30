@@ -1,6 +1,5 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
-pragma experimental ABIEncoderV2;
 
 // Hardhat
 import "hardhat/console.sol";
@@ -9,7 +8,6 @@ import "hardhat/console.sol";
 import "../interfaces/IStrategy.sol";
 
 // Lyra
-import {VaultAdapter} from "@lyrafinance/protocol/contracts/periphery/VaultAdapter.sol";
 import {GWAVOracle} from "@lyrafinance/protocol/contracts/periphery/GWAVOracle.sol";
 
 // Libraries
@@ -28,18 +26,18 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
 
   // example strategy detail
   struct DeltaShortStrategyDetail {
-    uint minTimeToExpiry;
-    uint maxTimeToExpiry;
-    int targetDelta;
-    uint maxDeltaGap;
-    uint minVol;
-    uint maxVol;
-    uint size;
-    uint maxVolVariance;
-    uint gwavPeriod;
+    uint minTimeToExpiry; // minimum board expiry
+    uint maxTimeToExpiry; // maximum board expiry
+    int targetDelta; // ideal option delta to trade
+    uint maxDeltaGap; // max diff between targetDelta and option delta
+    uint minVol; // min option volatility required
+    uint maxVol; // max option volatility required
+    uint size; // amount of options to sell per LyraVault.trade()
+    uint minTradeInterval; // min seconds between LyraVault.trade() calls
+    uint maxVolVariance; // max deviation from GWAV vol and option volatility
+    uint gwavPeriod; // gwav period used when calculating GWAV vol
     uint collatBuffer; // multiple of vaultAdapter.minCollateral(): 1.1 -> 110% * minCollat
     uint collatPercent; // partial collateral: 0.9 -> 90% * fullCollat
-    uint minTradeInterval;
   }
 
   DeltaShortStrategyDetail public strategyDetail;
@@ -83,7 +81,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
    */
   function returnFundsAndClearStrikes() external onlyVault {
     // exchange asset back to collateral asset and send it back to the vault
-    _returnFundsToVaut();
+    _returnFundsToVault();
 
     // keep internal storage data on old strikes and positions ids
     _clearAllActiveStrikes();
@@ -190,7 +188,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
       TradeInputParameters({
         strikeId: strike.id,
         positionId: strikeToPositionId[strike.id],
-        iterations: 4,
+        iterations: 3,
         optionType: optionType,
         amount: strategyDetail.size,
         setCollateralTo: setCollateralTo,
@@ -242,7 +240,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     });
 
     TradeResult memory result;
-    if (!_isOutsideDeltaCutoff(strike.id)) {
+    if (!_isOutsideDeltaCutoff(strike.id) && !_isWithinTradingCutoff(strike.id)) {
       result = closePosition(tradeParams);
     } else {
       // will pay less competitive price to close position
