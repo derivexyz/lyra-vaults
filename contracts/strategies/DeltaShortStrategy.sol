@@ -220,8 +220,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
 
     // closes excess position with premium balance
     uint maxExpectedPremium = _getPremiumLimit(strike, strategyDetail.maxVol, strategyDetail.size);
-    _closePosition(position, closeAmount, 0, maxExpectedPremium, lyraRewardRecipient);
-
+    _closeOrForceClosePosition(position, closeAmount, 0, maxExpectedPremium, lyraRewardRecipient);
 
     // return closed collateral amount
     if (_isBaseCollat()) {
@@ -234,21 +233,20 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
   }
 
   /**
-
-   * forced to close all out standing positions, and send funds back to vault
+   * @dev close all outstanding positions regardless of collat and send funds back to vault
    */
-  function forceCloseAll(address lyraRewardRecipient) external onlyVault {
+  function emergencyCloseAll(address lyraRewardRecipient) external onlyVault {
     // the vault might not hold enough sUSD to close all positions, will need someone to tapup before doing so.
     for (uint i = 0; i < activeStrikeIds.length; i++) {
       uint strikeId = activeStrikeIds[i];
       OptionPosition memory position = _getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
       // revert if position state is not settled
-      _closePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
+      _closeOrForceClosePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
       delete strikeToPositionId[strikeId];
       delete lastTradeTimestamp[strikeId];
     }
 
-    _returnFundsToVaut();
+    _returnFundsToVault();
   }
 
   /**

@@ -90,7 +90,6 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
     await lyraTestSystem.optionGreekCache.updateBoardCachedGreeks(boardId);
 
-
     // fast forward so vol GWAP can work
     await lyraEvm.fastForward(600);
   });
@@ -578,13 +577,15 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
     it('cannot force close when the price move against our positions.', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3500'), 'sETH');
-      await expect(vault.connect(manager).forceClose()).to.be.revertedWith('ERC20: transfer amount exceeds balance');
+      await expect(vault.connect(manager).emergencyCloseRound()).to.be.revertedWith(
+        'ERC20: transfer amount exceeds balance',
+      );
     });
     it('should be able to force close all positions, if price goes in favor of us', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('2500'), 'sETH');
       const storedStrikeId1 = await strategy.activeStrikeIds(0);
       const storedStrikeId2 = await strategy.activeStrikeIds(1);
-      await vault.connect(manager).forceClose();
+      await vault.connect(manager).emergencyCloseRound();
       expect(await strategy.strikeToPositionId(storedStrikeId1)).to.be.eq(0);
       expect(await strategy.strikeToPositionId(storedStrikeId2)).to.be.eq(0);
     });
