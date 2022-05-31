@@ -406,7 +406,6 @@ describe('Long Call Strategy integration test', async () => {
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('2500'), 'sETH');
       const storedStrikeId1 = await strategy.activeStrikeIds(0);
 
-
       await vault.connect(manager).emergencyCloseRound();
       const balanceAfter = await susd.balanceOf(vault.address);
 
@@ -418,7 +417,6 @@ describe('Long Call Strategy integration test', async () => {
       const balanceBefore = (await susd.balanceOf(strategy.address)).add(await susd.balanceOf(vault.address));
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3500'), 'sETH');
       const storedStrikeId1 = await strategy.activeStrikeIds(0);
-
 
       await vault.connect(manager).emergencyCloseRound();
 
