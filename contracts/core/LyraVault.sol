@@ -76,6 +76,9 @@ contract LyraVault is Ownable, BaseVault {
 
   /// @dev close the current round, enable user to deposit for the next round
   function closeRound() external {
+    require(strategy.activeExpiry < block.timestamp, "cannot close round if board not expired");
+    require(vaultState.roundInProgress, "round closed");
+
     uint104 lockAmount = vaultState.lockedAmount;
     vaultState.lastLockedAmount = lockAmount;
     vaultState.lockedAmountLeft = 0;
