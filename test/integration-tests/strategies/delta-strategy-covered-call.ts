@@ -1,4 +1,4 @@
-import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/protocol';
+import { lyraConstants, lyraDefaultParams, lyraEvm, TestSystem } from '@lyrafinance/protocol';
 import { PositionState, toBN } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
 import { TestSystemContractsType } from '@lyrafinance/protocol/dist/test/utils/deployTestSystem';
 import { PricingParametersStruct } from '@lyrafinance/protocol/dist/typechain-types/OptionMarketViewer';
@@ -66,7 +66,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
 
   before('deploy lyra core', async () => {
     const pricingParams: PricingParametersStruct = {
-      ...TestSystem.defaultParams.pricingParams,
+      ...lyraDefaultParams.PRICING_PARAMS,
       standardSize: toBN('50'),
       spotPriceFeeCoefficient: toBN('0.001'),
       vegaFeeCoefficient: toBN('60'),
@@ -124,27 +124,16 @@ describe('Covered Call Delta Strategy integration test', async () => {
       })
     )
       .connect(manager)
-      .deploy(
-        vault.address,
-        TestSystem.OptionType.SHORT_CALL_BASE,
-        lyraTestSystem.GWAVOracle.address,
-      )) as DeltaShortStrategy;
+      .deploy(vault.address, TestSystem.OptionType.SHORT_CALL_BASE)) as DeltaShortStrategy;
   });
 
   before('initialize strategy and adaptor', async () => {
     // todo: remove this once we put everything in constructor
     await strategy.connect(manager).initAdapter(
-      lyraTestSystem.testCurve.address, // curve swap
-      lyraTestSystem.optionToken.address,
+      lyraTestSystem.lyraRegistry.address,
       lyraTestSystem.optionMarket.address,
-      lyraTestSystem.liquidityPool.address,
-      lyraTestSystem.shortCollateral.address,
-      lyraTestSystem.synthetixAdapter.address,
-      lyraTestSystem.optionMarketPricer.address,
-      lyraTestSystem.optionGreekCache.address,
-      susd.address, // quote
-      seth.address, // base
-      lyraTestSystem.basicFeeCounter.address as string,
+      lyraTestSystem.testCurve.address, // curve swap
+      lyraTestSystem.basicFeeCounter.address,
     );
   });
 
@@ -225,7 +214,7 @@ describe('Covered Call Delta Strategy integration test', async () => {
     it('should revert when min premium < premium calculated with min vol', async () => {
       // significantly increasing lyra spot fees to 50% of spot to make premiums below threshold
       let pricingParams: PricingParametersStruct = {
-        ...TestSystem.defaultParams.pricingParams,
+        ...lyraDefaultParams.PRICING_PARAMS,
         standardSize: toBN('50'),
         spotPriceFeeCoefficient: toBN('0.5'),
         vegaFeeCoefficient: toBN('60'),

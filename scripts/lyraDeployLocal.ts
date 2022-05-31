@@ -1,4 +1,11 @@
-import { getGlobalDeploys, getMarketDeploys, lyraConstants, lyraUtils, TestSystem } from '@lyrafinance/protocol';
+import {
+  getGlobalDeploys,
+  getMarketDeploys,
+  lyraConstants,
+  lyraDefaultParams,
+  lyraUtils,
+  TestSystem,
+} from '@lyrafinance/protocol';
 import { toBN } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
 import { DeployOverrides } from '@lyrafinance/protocol/dist/test/utils/deployTestSystem';
 import { ethers } from 'ethers';
@@ -24,7 +31,7 @@ async function main() {
   const enableTracer = false;
   const overrides: DeployOverrides = {
     minCollateralParams: {
-      ...TestSystem.defaultParams.minCollateralParams,
+      ...lyraDefaultParams.MIN_COLLATERAL_PARAMS,
       minStaticBaseCollateral: lyraUtils.toBN('0.001'),
     },
   };

@@ -18,8 +18,8 @@ async function main() {
   const deployer = new ethers.Wallet(privateKey, provider);
 
   // 2. get lyra contracts
-  let lyraGlobal = await getGlobalDeploys('kovan-ovm');
-  let lyraMarket = await getMarketDeploys('kovan-ovm', 'sETH');
+  let lyraGlobal = getGlobalDeploys('kovan-ovm');
+  let lyraMarket = getMarketDeploys('kovan-ovm', 'sETH');
 
   // const testFaucet = new Contract(lyraGlobal.TestFaucet.address, lyraGlobal.TestFaucet.abi, deployer);
   const sUSD = new Contract(lyraGlobal.QuoteAsset.address, lyraGlobal.QuoteAsset.abi, deployer);
