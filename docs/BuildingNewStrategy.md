@@ -288,7 +288,7 @@ Upon expiry, Lyra bots will auto-settle all options and return funds to the posi
 As some vaults may be base collateralized, `_returnFundsToVault()` also supports auto exchanging of quote premiums into base collat:
 ```solidity
 function _returnFundsToVault() internal virtual {
-  ExchangeRateParams memory exchangeParams = getExchangeParams(); // LyraAdapter function to get Synthetix market params
+  ExchangeRateParams memory exchangeParams = _getExchangeParams(); // LyraAdapter function to get Synthetix market params
   uint quoteBal = quoteAsset.balanceOf(address(this));
 
   if (_isBaseCollat()) {
@@ -297,7 +297,7 @@ function _returnFundsToVault() internal virtual {
     uint minQuoteExpected = quoteBal.divideDecimal(exchangeParams.spotPrice).multiplyDecimal(
       DecimalMath.UNIT - exchangeParams.baseQuoteFeeRate
     );
-    uint baseReceived = exchangeFromExactQuote(quoteBal, minQuoteExpected);
+    uint baseReceived = _exchangeFromExactQuote(quoteBal, minQuoteExpected);
     require(baseAsset.transfer(address(vault), baseBal + baseReceived), "failed to return funds from strategy");
   } else {
     // send quote balance directly
@@ -306,15 +306,15 @@ function _returnFundsToVault() internal virtual {
 }
 ```
 
-`LyraAdapter.exchangeFromExactQuote()` is used to exchange the earned premiums back into base through the Synthetix spot market.
+`LyraAdapter._exchangeFromExactQuote()` is used to exchange the earned premiums back into base through the Synthetix spot market.
 
-When getting position status via `_clearAllActiveStrikes()` we can rely on `LyraAdapter.getPositions()`: 
+When getting position status via `_clearAllActiveStrikes()` we can rely on `LyraAdapter._getPositions()`: 
 ```solidity
 function _clearAllActiveStrikes() internal {
   if (activeStrikeIds.length != 0) {
     for (uint i = 0; i < activeStrikeIds.length; i++) {
       uint strikeId = activeStrikeIds[i];
-      OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
+      OptionPosition memory position = _getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
       // revert if position state is not settled
       require(position.state != PositionState.ACTIVE, "cannot clear active position");
       delete strikeToPositionId[strikeId];

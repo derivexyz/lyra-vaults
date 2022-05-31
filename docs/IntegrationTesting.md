@@ -15,7 +15,7 @@ First, follow installation instructions in [@lyrafinance/protocol](https://www.n
 
 Import all required modules and setup scaffold:
 ```typescript
-import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/protocol';
+import { lyraConstants, lyraEvm, lyraDefaultParams, TestSystem } from '@lyrafinance/protocol';
 import { expect } from 'chai';
 import { DeltaShortStrategy, LyraVault, MockERC20 } from '../../../typechain-types';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -50,7 +50,7 @@ const boardParameter = {
 };
 const initialPoolDeposit = toBN('1500000'); // 1.5m
 const pricingParams = {
-    ...TestSystem.defaultParams.pricingParams,
+    ...lyraDefaultParams.PRICING_PARAMS,
     standardSize: toBN('50'),
     spotPriceFeeCoefficient: toBN('0.001'),
     vegaFeeCoefficient: toBN('60'),
@@ -109,26 +109,17 @@ before('deploy strategy', async () => {
     .connect(manager)
     .deploy(
       vault.address,
-      TestSystem.OptionType.SHORT_CALL_BASE,
-      lyraTestSystem.GWAVOracle.address,
+      TestSystem.OptionType.SHORT_CALL_BASE
     )) as DeltaShortStrategy;
 });
 
 before('initialize strategy and adapter', async () => {
-  // todo: need to use LyraRegistry.sol instead
-  await strategy.connect(manager).initAdapter(
-      lyraTestSystem.testCurve.address, // curve swap
-      lyraTestSystem.optionToken.address,
+    await strategy.connect(manager).initAdapter(
+      lyraTestSystem.lyraRegistry.address,
       lyraTestSystem.optionMarket.address,
-      lyraTestSystem.liquidityPool.address,
-      lyraTestSystem.shortCollateral.address,
-      lyraTestSystem.synthetixAdapter.address,
-      lyraTestSystem.optionMarketPricer.address,
-      lyraTestSystem.optionGreekCache.address,
-      susd.address, // quote
-      seth.address, // base
-      lyraTestSystem.basicFeeCounter.address as string,
-  );
+      lyraTestSystem.testCurve.address, // curve swap
+      lyraTestSystem.basicFeeCounter.address,
+    );
 });
 
 before('link strategy to vault', async () => {
@@ -142,7 +133,7 @@ before('link strategy to vault', async () => {
 it('should revert when min premium < premium calculated with min vol', async () => {
   // significantly increasing lyra spot fees to 50% of spot to make premiums below threshold
   let pricingParams: PricingParametersStruct = {
-    ...TestSystem.defaultParams.pricingParams,
+    ...lyraDefaultParams.PRICING_PARAMS,
     spotPriceFeeCoefficient: toBN('0.5'), // set spot fee to 50%
   };
   await lyraTestSystem.optionMarketPricer.setPricingParams(pricingParams);
