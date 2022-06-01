@@ -519,6 +519,9 @@ describe('Covered Call Delta Strategy integration test', async () => {
     });
 
     it('should be able to close closeRound after settlement', async () => {
+      await lyraEvm.fastForward(boardParameter.expiresIn);
+      await lyraTestSystem.optionMarket.settleExpiredBoard(boardId);
+
       const ethInVaultBefore = await seth.balanceOf(vault.address);
       const ethInStrategyBefore = await seth.balanceOf(strategy.address);
       const susdInStrategyBefore = await susd.balanceOf(strategy.address);
