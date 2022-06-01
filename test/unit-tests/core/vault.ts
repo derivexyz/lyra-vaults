@@ -82,7 +82,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
   });
 
   describe('owner settings', async () => {
-    it('shoud revert when setting cap as 0', async () => {
+    it('should revert when setting cap as 0', async () => {
       await expect(vault.connect(owner).setCap(0)).to.be.revertedWith('!newCap');
     });
     it('owner should be able to set a new cap', async () => {
@@ -98,7 +98,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
       const weeklyFee = BigNumber.from(managementFee).mul(7).div(365);
       expect(weeklyFee).to.be.eq(fee);
     });
-    it("should revert when trying to set a mangement fee that's too high", async () => {
+    it("should revert when trying to set a management fee that's too high", async () => {
       await expect(vault.connect(owner).setManagementFee(100 * FEE_MULTIPLIER)).to.be.revertedWith(
         'Invalid management fee',
       );
@@ -273,7 +273,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
       const allowanceAfter = await seth.allowance(vault.address, mockedStrategy.address);
       expect(allowanceAfter.isZero()).to.be.true;
     });
-    it('owner can set lyraRewardReciepient', async () => {
+    it('owner can set lyraRewardRecipient', async () => {
       await vault.connect(owner).setLyraRewardRecipient(feeRecipient.address);
       const newRecipient = await vault.lyraRewardRecipient();
       expect(newRecipient).to.be.eq(feeRecipient.address);
