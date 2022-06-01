@@ -2,6 +2,8 @@
 pragma solidity ^0.8.9;
 
 interface IStrategy {
+  function activeExpiry() external returns (uint);
+
   function setBoard(uint boardId) external;
 
   function doTrade(uint strikeId, address rewardRecipient)
