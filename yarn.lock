@@ -248,7 +248,7 @@
     "@ethersproject/transactions" "^5.4.0"
     "@ethersproject/web" "^5.4.0"
 
-"@ethersproject/abstract-provider@^5.6.1":
+"@ethersproject/abstract-provider@^5.6.0", "@ethersproject/abstract-provider@^5.6.1":
   version "5.6.1"
   resolved "https://registry.yarnpkg.com/@ethersproject/abstract-provider/-/abstract-provider-5.6.1.tgz#02ddce150785caf0c77fe036a0ebfcee61878c59"
   integrity sha512-BxlIgogYJtp1FS8Muvj8YfdClk3unZH0vRMVX791Z9INBNT/kuACZ9GzaY1Y4yFq+YSy6/w4gzj3HCRKrK9hsQ==
@@ -759,15 +759,17 @@
   resolved "https://registry.npmjs.org/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
-"@lyrafinance/protocol@file:../tar/lyrafinance-protocol-0.1.1.c-alpha.tgz":
+"@lyrafinance/protocol@file:../tar/lyrafinance-protocol-0.1.1.h-alpha.tgz":
   version "0.1.1-alpha"
-  resolved "file:../tar/lyrafinance-protocol-0.1.1.c-alpha.tgz#c0047e08e653604190c322a422ab3ae4dea584eb"
+  resolved "file:../tar/lyrafinance-protocol-0.1.1.h-alpha.tgz#56fb90e751ba3eba08263d3234db8bcace2f8261"
   dependencies:
     "@ethersproject/abi" "^5.4.0"
+    "@ethersproject/abstract-provider" "^5.6.0"
     "@openzeppelin/contracts" "^4.4.1"
     "@openzeppelin/contracts-upgradeable" "^4.5.1"
     "@openzeppelin/hardhat-upgrades" "^1.14.0"
     "@typechain/hardhat" "^3.0.0"
+    dotenv "^9.0.2"
     hardhat-dependency-compiler "^1.1.2"
     hardhat-tracer "1.0.0-alpha.6"
     stochastic "^0.0.14"
@@ -3608,6 +3610,11 @@ dotenv@^10.0.0:
   version "10.0.0"
   resolved "https://registry.npmjs.org/dotenv/-/dotenv-10.0.0.tgz"
   integrity sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==
+
+dotenv@^9.0.2:
+  version "9.0.2"
+  resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-9.0.2.tgz#dacc20160935a37dea6364aa1bef819fb9b6ab05"
+  integrity sha512-I9OvvrHp4pIARv4+x9iuewrWycX6CcZtoAu1XrzPxc5UygMJXJZYmBsynku8IkrJwgypE5DGNjDPmPRhDCptUg==
 
 dotignore@~0.1.2:
   version "0.1.2"
