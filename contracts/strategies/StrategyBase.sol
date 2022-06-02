@@ -54,7 +54,7 @@ contract StrategyBase is LyraAdapter {
 
     quoteAsset.approve(address(vault), type(uint).max);
     baseAsset.approve(address(vault), type(uint).max);
-    collateralAsset = _isBaseCollat() ? baseAsset : quoteAsset;
+    collateralAsset = _isBaseCollat() ? IERC20(address(baseAsset)) : IERC20(address(quoteAsset));
   }
 
   ///////////////////

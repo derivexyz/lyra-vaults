@@ -759,19 +759,19 @@
   resolved "https://registry.npmjs.org/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
-"@lyrafinance/protocol@file:../tar/lyrafinance-protocol-0.1.1.h-alpha.tgz":
+"@lyrafinance/protocol@file:../tar/lyrafinance-protocol-0.1.1.j-alpha.tgz":
   version "0.1.1-alpha"
-  resolved "file:../tar/lyrafinance-protocol-0.1.1.h-alpha.tgz#56fb90e751ba3eba08263d3234db8bcace2f8261"
+  resolved "file:../tar/lyrafinance-protocol-0.1.1.j-alpha.tgz#5ecb10225017406257410c99636ee47fb3091d7a"
   dependencies:
     "@ethersproject/abi" "^5.4.0"
     "@ethersproject/abstract-provider" "^5.6.0"
-    "@openzeppelin/contracts" "^4.4.1"
-    "@openzeppelin/contracts-upgradeable" "^4.5.1"
     "@openzeppelin/hardhat-upgrades" "^1.14.0"
     "@typechain/hardhat" "^3.0.0"
     dotenv "^9.0.2"
     hardhat-dependency-compiler "^1.1.2"
     hardhat-tracer "1.0.0-alpha.6"
+    openzeppelin-contracts-4.4.1 "npm:@openzeppelin/contracts@4.4.1"
+    openzeppelin-contracts-upgradeable-4.5.1 "npm:@openzeppelin/contracts-upgradeable@4.5.1"
     stochastic "^0.0.14"
 
 "@metamask/eth-sig-util@^4.0.0":
@@ -907,11 +907,6 @@
     strip-ansi "^6.0.0"
     widest-line "^3.1.0"
     wrap-ansi "^4.0.0"
-
-"@openzeppelin/contracts-upgradeable@^4.5.1":
-  version "4.5.2"
-  resolved "https://registry.npmjs.org/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.5.2.tgz"
-  integrity sha512-xgWZYaPlrEOQo3cBj97Ufiuv79SPd8Brh4GcFYhPgb6WvAq4ppz8dWKL6h+jLAK01rUqMRp/TS9AdXgAeNvCLA==
 
 "@openzeppelin/contracts@^4.4.1":
   version "4.5.0"
@@ -7738,6 +7733,16 @@ opencollective-postinstall@^2.0.2:
   version "2.0.3"
   resolved "https://registry.npmjs.org/opencollective-postinstall/-/opencollective-postinstall-2.0.3.tgz"
   integrity sha512-8AV/sCtuzUeTo8gQK5qDZzARrulB3egtLzFgteqB2tcT4Mw7B8Kt7JcDHmltjz6FOAHsvTevk70gZEbhM4ZS9Q==
+
+"openzeppelin-contracts-4.4.1@npm:@openzeppelin/contracts@4.4.1":
+  version "4.4.1"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.4.1.tgz#3382db2cd83ab565ed9626765e7da92944b45de8"
+  integrity sha512-o+pHCf/yMLSlV5MkDQEzEQL402i6SoRnktru+0rdSxVEFZcTzzGhZCAtZjUFyKGazMSv1TilzMg+RbED1N8XHQ==
+
+"openzeppelin-contracts-upgradeable-4.5.1@npm:@openzeppelin/contracts-upgradeable@4.5.1":
+  version "4.5.1"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.5.1.tgz#dc354082460eb34f5833afdecfab46538b208c4f"
+  integrity sha512-xcKycsSyFauIGMhSeeTJW/Jzz9jZUJdiFNP9Wo/9VhMhw8t5X0M92RY6x176VfcIWsxURMHFWOJVTlFA78HI/w==
 
 optionator@^0.8.1, optionator@^0.8.2:
   version "0.8.3"
