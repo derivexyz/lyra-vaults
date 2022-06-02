@@ -1,6 +1,5 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
-
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -76,6 +75,9 @@ contract LyraVault is Ownable, BaseVault {
 
   /// @dev close the current round, enable user to deposit for the next round
   function closeRound() external {
+    require(strategy.activeExpiry() < block.timestamp, "cannot close round if board not expired");
+    require(vaultState.roundInProgress, "round closed");
+
     uint104 lockAmount = vaultState.lockedAmount;
     vaultState.lastLockedAmount = lockAmount;
     vaultState.lockedAmountLeft = 0;
@@ -108,7 +110,7 @@ contract LyraVault is Ownable, BaseVault {
   /// @notice start the next round
   /// @param boardId board id (asset + expiry) for next round.
   function startNextRound(uint boardId) external onlyOwner {
-    require(!vaultState.roundInProgress, "round opened");
+    require(!vaultState.roundInProgress, "round in progress");
     require(block.timestamp > vaultState.nextRoundReadyTimestamp, "CD");
 
     strategy.setBoard(boardId);

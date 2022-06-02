@@ -14,6 +14,7 @@ contract MockStrategy is IStrategy {
   bool public isSettlted;
 
   uint public boardId;
+  uint public activeExpiry;
 
   constructor(IERC20Detailed _premiumToken, IERC20Detailed _collateralToken) {
     collateral = _collateralToken;

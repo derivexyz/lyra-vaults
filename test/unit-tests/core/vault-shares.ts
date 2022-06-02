@@ -188,9 +188,6 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
 
   describe('round 2: vault makes profit', async () => {
     describe('start the second round', async () => {
-      it('should be able to close the previous round', async () => {
-        await vault.connect(owner).closeRound();
-      });
       it('stimulate time pass', async () => {
         await ethers.provider.send('evm_increaseTime', [86400]);
         await ethers.provider.send('evm_mine', []);
