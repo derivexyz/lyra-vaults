@@ -29,8 +29,6 @@ describe('Unit test: Basic LyraVault flow', async () => {
   const managementFee = 1 * FEE_MULTIPLIER; // 1% fee
   const initCap = parseEther('50');
 
-  let totalDeposit: BigNumber;
-
   // mocked premium in USD and ETH
   const roundPremiumSUSD = parseUnits('50');
   const roundPremiumInEth = parseEther('0.01');
@@ -181,10 +179,6 @@ describe('Unit test: Basic LyraVault flow', async () => {
   });
 
   describe('start the second round', async () => {
-    it('should be able to close the previous round', async () => {
-      totalDeposit = await seth.balanceOf(vault.address);
-      await vault.connect(owner).closeRound();
-    });
     it('should revert if startNextRound is called by arbitrary user', async () => {
       const wrongRoundId = 1000;
       await expect(vault.connect(anyone).startNextRound(wrongRoundId)).to.be.revertedWith(
@@ -222,7 +216,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
     });
 
     it('should revert if trying to start the next round without closing the round', async () => {
-      await expect(vault.startNextRound(0)).to.be.revertedWith('round opened');
+      await expect(vault.startNextRound(0)).to.be.revertedWith('round in progress');
     });
 
     it('should close the current round', async () => {
@@ -256,7 +250,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
       const roundPerformanceFee = roundPremiumInEth.mul(performanceFee).div(100 * FEE_MULTIPLIER);
 
       const weeklyManagementFee = await vault.managementFee();
-      const roundManagementFee = totalDeposit
+      const roundManagementFee = depositAmount
         .add(roundPremiumInEth)
         .mul(weeklyManagementFee)
         .div(100 * FEE_MULTIPLIER);
