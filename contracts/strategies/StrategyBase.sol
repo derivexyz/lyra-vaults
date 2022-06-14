@@ -50,7 +50,7 @@ contract StrategyBase is LyraAdapter {
     address _feeCounter
   ) external onlyOwner {
     // set addresses for LyraAdapter
-    _setLyraAddresses(_lyraRegistry, _optionMarket, _curveSwap, _feeCounter);
+    setLyraAddresses(_lyraRegistry, _optionMarket, _curveSwap, _feeCounter);
 
     quoteAsset.approve(address(vault), type(uint).max);
     baseAsset.approve(address(vault), type(uint).max);
@@ -92,7 +92,7 @@ contract StrategyBase is LyraAdapter {
    * depending on whether deltaCutoff or tradingCutoff are crossed
    */
 
-  function _closeOrForceClosePosition(
+  function _formatedCloseOrForceClosePosition(
     OptionPosition memory position,
     uint closeAmount,
     uint minTotalCost,
@@ -116,13 +116,8 @@ contract StrategyBase is LyraAdapter {
       rewardRecipient: lyraRewardRecipient // set to zero address if don't want to wait for whitelist
     });
 
-    TradeResult memory result;
-    if (!_isOutsideDeltaCutoff(position.strikeId) && !_isWithinTradingCutoff(position.strikeId)) {
-      result = _closePosition(tradeParams);
-    } else {
-      // will pay less competitive price to close position but bypasses Lyra delta/trading cutoffs
-      result = _forceClosePosition(tradeParams);
-    }
+    // if forceClosed, will pay less competitive price to close position but bypasses Lyra delta/trading cutoffs
+    TradeResult memory result = _closeOrForceClosePosition(tradeParams);
     require(result.totalCost <= maxTotalCost, "premium paid is above max expected premium");
   }
 
@@ -145,24 +140,6 @@ contract StrategyBase is LyraAdapter {
     );
 
     limitPremium = _isCall() ? callPremium.multiplyDecimal(size) : putPremium.multiplyDecimal(size);
-  }
-
-  /**
-   * @dev use latest optionMarket delta cutoff to determine whether trade delta is out of bounds
-   */
-  function _isOutsideDeltaCutoff(uint strikeId) internal view returns (bool) {
-    MarketParams memory marketParams = _getMarketParams();
-    int callDelta = _getDeltas(_toDynamic(strikeId))[0];
-    return callDelta > (int(DecimalMath.UNIT) - marketParams.deltaCutOff) || callDelta < marketParams.deltaCutOff;
-  }
-
-  /**
-   * @dev use latest optionMarket trading cutoff to determine whether trade is too close to expiry
-   */
-  function _isWithinTradingCutoff(uint strikeId) internal view returns (bool) {
-    MarketParams memory marketParams = _getMarketParams();
-    Strike memory strike = _getStrikes(_toDynamic(strikeId))[0];
-    return strike.expiry - block.timestamp <= marketParams.tradingCutoff;
   }
 
   //////////////////////////////

@@ -135,7 +135,7 @@ contract DeltaLongStrategy is StrategyBase, IStrategy {
       OptionPosition memory position = _getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
       // revert if position state is not settled
 
-      _closeOrForceClosePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
+      _formatedCloseOrForceClosePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
       delete strikeToPositionId[strikeId];
       delete lastTradeTimestamp[strikeId];
     }

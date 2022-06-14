@@ -759,9 +759,9 @@
   resolved "https://registry.npmjs.org/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
-"@lyrafinance/protocol@file:../tar/lyrafinance-protocol-0.1.1.j-alpha.tgz":
+"@lyrafinance/protocol@/Users/joshuakim/Documents/Lyra/tar/lyrafinance-protocol-0.1.1-alpha.tgz":
   version "0.1.1-alpha"
-  resolved "file:../tar/lyrafinance-protocol-0.1.1.j-alpha.tgz#5ecb10225017406257410c99636ee47fb3091d7a"
+  resolved "/Users/joshuakim/Documents/Lyra/tar/lyrafinance-protocol-0.1.1-alpha.tgz#66dd265f04cd81479dcd74028c80200a318f9c3d"
   dependencies:
     "@ethersproject/abi" "^5.4.0"
     "@ethersproject/abstract-provider" "^5.6.0"
@@ -772,6 +772,19 @@
     hardhat-tracer "1.0.0-alpha.6"
     openzeppelin-contracts-4.4.1 "npm:@openzeppelin/contracts@4.4.1"
     openzeppelin-contracts-upgradeable-4.5.1 "npm:@openzeppelin/contracts-upgradeable@4.5.1"
+    stochastic "^0.0.14"
+
+"@lyrafinance/protocol@file:../tar/lyrafinance-protocol-0.1.1-alpha.tgz":
+  version "0.1.1-alpha"
+  resolved "file:../tar/lyrafinance-protocol-0.1.1-alpha.tgz#2891f6f67453c15f8c232fac4eab0979ccfbd072"
+  dependencies:
+    "@ethersproject/abi" "^5.4.0"
+    "@openzeppelin/contracts" "^4.4.1"
+    "@openzeppelin/contracts-upgradeable" "^4.5.1"
+    "@openzeppelin/hardhat-upgrades" "^1.14.0"
+    "@typechain/hardhat" "^3.0.0"
+    hardhat-dependency-compiler "^1.1.2"
+    hardhat-tracer "1.0.0-alpha.6"
     stochastic "^0.0.14"
 
 "@metamask/eth-sig-util@^4.0.0":
@@ -907,6 +920,11 @@
     strip-ansi "^6.0.0"
     widest-line "^3.1.0"
     wrap-ansi "^4.0.0"
+
+"@openzeppelin/contracts-upgradeable@^4.5.1":
+  version "4.6.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.6.0.tgz#1bf55f230f008554d4c6fe25eb165b85112108b0"
+  integrity sha512-5OnVuO4HlkjSCJO165a4i2Pu1zQGzMs//o54LPrwUgxvEO2P3ax1QuaSI0cEHHTveA77guS0PnNugpR2JMsPfA==
 
 "@openzeppelin/contracts@^4.4.1":
   version "4.5.0"

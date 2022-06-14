@@ -220,7 +220,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
 
     // closes excess position with premium balance
     uint maxExpectedPremium = _getPremiumLimit(strike, strategyDetail.maxVol, strategyDetail.size);
-    _closeOrForceClosePosition(position, closeAmount, 0, maxExpectedPremium, lyraRewardRecipient);
+    _formatedCloseOrForceClosePosition(position, closeAmount, 0, maxExpectedPremium, lyraRewardRecipient);
 
     // return closed collateral amount
     if (_isBaseCollat()) {
@@ -241,7 +241,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
       uint strikeId = activeStrikeIds[i];
       OptionPosition memory position = _getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
       // revert if position state is not settled
-      _closeOrForceClosePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
+      _formatedCloseOrForceClosePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
       delete strikeToPositionId[strikeId];
       delete lastTradeTimestamp[strikeId];
     }
