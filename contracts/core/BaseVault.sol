@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -13,11 +12,8 @@ import {Vault} from "../libraries/Vault.sol";
 import {VaultLifecycle} from "../libraries/VaultLifecycle.sol";
 import {ShareMath} from "../libraries/ShareMath.sol";
 
-import "hardhat/console.sol";
-
 contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
   using SafeERC20 for IERC20;
-  using SafeMath for uint;
   using ShareMath for Vault.DepositReceipt;
 
   /************************************************
@@ -100,7 +96,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
     Vault.VaultParams memory _vaultParams
   ) ERC20(_tokenName, _tokenSymbol) {
     feeRecipient = _feeRecipient;
-    uint _roundPerYear = uint(365 days).mul(Vault.FEE_MULTIPLIER).div(_roundDuration);
+    uint _roundPerYear = (uint(365 days) * Vault.FEE_MULTIPLIER) / _roundDuration;
     roundPerYear = _roundPerYear;
     vaultParams = _vaultParams;
 
@@ -134,7 +130,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
     emit ManagementFeeSet(managementFee, newManagementFee);
 
     // We are dividing annualized management fee by number of rounds in a year
-    managementFee = newManagementFee.mul(Vault.FEE_MULTIPLIER).div(roundPerYear);
+    managementFee = (newManagementFee * Vault.FEE_MULTIPLIER) / roundPerYear;
   }
 
   /**
@@ -202,7 +198,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
    */
   function _depositFor(uint amount, address creditor) private {
     uint currentRound = vaultState.round;
-    uint totalWithDepositedAmount = totalBalance().add(amount);
+    uint totalWithDepositedAmount = totalBalance() + amount;
 
     require(totalWithDepositedAmount <= vaultParams.cap, "Exceed cap");
 
@@ -221,7 +217,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
 
     // If we have a pending deposit in the current round, we add on to the pending deposit
     if (currentRound == depositReceipt.round) {
-      uint newAmount = uint(depositReceipt.amount).add(amount);
+      uint newAmount = uint(depositReceipt.amount) + amount;
       depositAmount = newAmount;
     }
 
@@ -233,7 +229,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
       unredeemedShares: uint128(unredeemedShares)
     });
 
-    uint newTotalPending = uint(vaultState.totalPending).add(amount);
+    uint newTotalPending = uint(vaultState.totalPending) + amount;
     ShareMath.assertUint128(newTotalPending);
 
     vaultState.totalPending = uint128(newTotalPending);
@@ -264,7 +260,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
 
     uint withdrawalShares;
     if (withdrawalIsSameRound) {
-      withdrawalShares = existingShares.add(numShares);
+      withdrawalShares = existingShares + numShares;
     } else {
       require(existingShares == 0, "Existing withdraw");
       withdrawalShares = numShares;
@@ -274,7 +270,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
     ShareMath.assertUint128(withdrawalShares);
     withdrawals[msg.sender].shares = uint128(withdrawalShares);
 
-    uint newQueuedWithdrawShares = uint(vaultState.queuedWithdrawShares).add(numShares);
+    uint newQueuedWithdrawShares = uint(vaultState.queuedWithdrawShares) + numShares;
     ShareMath.assertUint128(newQueuedWithdrawShares);
     vaultState.queuedWithdrawShares = uint128(newQueuedWithdrawShares);
 
@@ -297,7 +293,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
 
     // We leave the round number as non-zero to save on gas for subsequent writes
     withdrawals[msg.sender].shares = 0;
-    vaultState.queuedWithdrawShares = uint128(uint(vaultState.queuedWithdrawShares).sub(withdrawalShares));
+    vaultState.queuedWithdrawShares = uint128(uint(vaultState.queuedWithdrawShares) - withdrawalShares);
 
     uint withdrawAmount = ShareMath.sharesToAsset(
       withdrawalShares,
@@ -360,7 +356,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
     depositReceipts[msg.sender].amount = depositReceipt.round < currentRound ? 0 : depositReceipt.amount;
 
     ShareMath.assertUint128(numShares);
-    depositReceipts[msg.sender].unredeemedShares = uint128(unredeemedShares.sub(numShares));
+    depositReceipts[msg.sender].unredeemedShares = uint128(unredeemedShares - numShares);
 
     emit Redeem(msg.sender, numShares, depositReceipt.round);
 
@@ -392,11 +388,11 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
     roundPricePerShare[currentRound] = newPricePerShare;
 
     uint withdrawAmountDiff = queuedWithdrawAmount > lastQueuedWithdrawAmount
-      ? queuedWithdrawAmount.sub(lastQueuedWithdrawAmount)
+      ? queuedWithdrawAmount - lastQueuedWithdrawAmount
       : 0;
 
     // Take management / performance fee from previous round and deduct
-    lockedBalance = lockedBalance.sub(_collectVaultFees(lockedBalance.add(withdrawAmountDiff)));
+    lockedBalance = lockedBalance - _collectVaultFees(lockedBalance + withdrawAmountDiff);
 
     // update round info
     vaultState.totalPending = 0;
@@ -460,7 +456,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
    */
   function shares(address account) public view returns (uint) {
     (uint heldByAccount, uint heldByVault) = shareBalances(account);
-    return heldByAccount.add(heldByVault);
+    return heldByAccount + heldByVault;
   }
 
   /**
@@ -497,7 +493,7 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
    * @return total balance of the vault, including the amounts locked in third party protocols
    */
   function totalBalance() public view returns (uint) {
-    return uint(vaultState.lockedAmount).add(IERC20(vaultParams.asset).balanceOf(address(this)));
+    return uint(vaultState.lockedAmount) + IERC20(vaultParams.asset).balanceOf(address(this));
   }
 
   /**

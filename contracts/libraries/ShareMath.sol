@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Vault} from "./Vault.sol";
 
 library ShareMath {
-  using SafeMath for uint;
-
   function assetToShares(
     uint assetAmount,
     uint assetPerShare,
@@ -16,7 +13,7 @@ library ShareMath {
     // which should never happen.
     require(assetPerShare > 0, "Invalid assetPerShare");
 
-    return assetAmount.mul(10**decimals).div(assetPerShare);
+    return (assetAmount * (10**decimals)) / (assetPerShare);
   }
 
   function sharesToAsset(
@@ -28,7 +25,7 @@ library ShareMath {
     // which should never happen.
     require(assetPerShare > 0, "Invalid assetPerShare");
 
-    return shares.mul(assetPerShare).div(10**decimals);
+    return (shares * assetPerShare) / (10**decimals);
   }
 
   /**
@@ -48,7 +45,7 @@ library ShareMath {
     if (depositReceipt.round > 0 && depositReceipt.round < currentRound) {
       uint sharesFromRound = assetToShares(depositReceipt.amount, assetPerShare, decimals);
 
-      return uint(depositReceipt.unredeemedShares).add(sharesFromRound);
+      return uint(depositReceipt.unredeemedShares) + sharesFromRound;
     }
     return depositReceipt.unredeemedShares;
   }
@@ -60,7 +57,7 @@ library ShareMath {
     uint decimals
   ) internal pure returns (uint) {
     uint singleShare = 10**decimals;
-    return totalSupply > 0 ? singleShare.mul(totalBalance.sub(pendingAmount)).div(totalSupply) : singleShare;
+    return totalSupply > 0 ? (singleShare * (totalBalance - pendingAmount)) / (totalSupply) : singleShare;
   }
 
   /************************************************
