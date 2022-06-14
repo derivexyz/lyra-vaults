@@ -24,9 +24,9 @@ library Vault {
     // 32 byte slot 1
     //  Current round number. `round` represents the number of `period`s elapsed.
     uint16 round;
-    // Amount that is currently locked for selling options
+    // Amount that is currently locked for the strategy
     uint104 lockedAmount;
-    // Amount that was locked for selling options in the previous round
+    // Amount that was locked for strategy in the previous round
     // used for calculating performance fee deduction
     uint104 lastLockedAmount;
     // locked amount left to be used for collateral;

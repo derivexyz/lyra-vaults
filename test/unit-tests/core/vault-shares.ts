@@ -125,18 +125,18 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
         await expect(vault.connect(depositor).initiateWithdraw(0)).to.be.revertedWith('!numShares');
       });
 
-      it('should revert when using initiateWithdraw becuase user has no shares', async () => {
+      it('should revert when using initiateWithdraw because user has no shares', async () => {
         const sharesToWithdraw = depositAmount;
         await expect(vault.connect(depositor).initiateWithdraw(sharesToWithdraw)).to.be.revertedWith(
           'ERC20: transfer amount exceeds balance',
         );
       });
 
-      it('should revert when calling competeWithdraw becuase user has no pending withdraw', async () => {
+      it('should revert when calling competeWithdraw because user has no pending withdraw', async () => {
         await expect(vault.connect(depositor).completeWithdraw()).to.be.revertedWith('Not initiated');
       });
 
-      it('should revert when calling redeem becuase depositor has no unreedemed shares', async () => {
+      it('should revert when calling redeem because depositor has no unredeemed shares', async () => {
         const sharesToWithdraw = depositAmount;
         await expect(vault.connect(depositor).redeem(sharesToWithdraw)).to.be.revertedWith('Exceeds available');
       });
@@ -148,7 +148,7 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
         expect(sharesAfter).to.be.eq(sharesBefore);
       });
 
-      it('should get 0 share out by calling maxRedeem becuase depositor has no unreedemed shares', async () => {
+      it('should get 0 share out by calling maxRedeem because depositor has no unredeemed shares', async () => {
         const sharesBefore = await vault.balanceOf(depositor.address);
         await vault.connect(depositor).maxRedeem();
         const sharesAfter = await vault.balanceOf(depositor.address);
@@ -169,7 +169,7 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
         const price = await vault.pricePerShare();
         expect(price).to.be.eq(oneShare);
       });
-      it('shuold return 0 for total balance ', async () => {
+      it('should return 0 for total balance ', async () => {
         const balance = await vault.accountVaultBalance(depositor.address);
         expect(balance).to.be.eq(0);
       });
@@ -237,29 +237,29 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     });
 
     describe('initiate withdraw', async () => {
-      let sharesToInitaiteWithrawSecond: BigNumber;
+      let sharesToInitiateWithdrawSecond: BigNumber;
       it('should be able to initiate a withdraw, this will trigger a max redeem', async () => {
         const totalShares = await vault.shares(depositor.address);
         const totalSharesToInitiateWithdraw = totalShares.div(1 / initiateWithdrawSharePercentage);
 
-        // only que withraw 1/8 of total shares
-        const sharesToInitaiteWithrawFirst = totalSharesToInitiateWithdraw.div(2);
-        sharesToInitaiteWithrawSecond = totalSharesToInitiateWithdraw.sub(sharesToInitaiteWithrawFirst);
+        // only que withdraw 1/8 of total shares
+        const sharesToInitiateWithdrawFirst = totalSharesToInitiateWithdraw.div(2);
+        sharesToInitiateWithdrawSecond = totalSharesToInitiateWithdraw.sub(sharesToInitiateWithdrawFirst);
 
-        await vault.connect(depositor).initiateWithdraw(sharesToInitaiteWithrawFirst);
+        await vault.connect(depositor).initiateWithdraw(sharesToInitiateWithdrawFirst);
 
         const { heldByVault, heldByAccount } = await vault.shareBalances(depositor.address);
-        expect(heldByAccount.add(sharesToInitaiteWithrawFirst)).to.be.eq(totalShares);
+        expect(heldByAccount.add(sharesToInitiateWithdrawFirst)).to.be.eq(totalShares);
 
         expect(heldByVault).to.be.eq(0);
       });
       it('should be able to que more withdraw share amount', async () => {
-        // only que withraw another 1/8
+        // only que withdraw another 1/8
         const withdrawReceiptBefore = await vault.withdrawals(depositor.address);
-        await vault.connect(depositor).initiateWithdraw(sharesToInitaiteWithrawSecond);
+        await vault.connect(depositor).initiateWithdraw(sharesToInitiateWithdrawSecond);
         const withdrawReceiptAfter = await vault.withdrawals(depositor.address);
 
-        expect(withdrawReceiptAfter.shares.sub(withdrawReceiptBefore.shares)).to.be.eq(sharesToInitaiteWithrawSecond);
+        expect(withdrawReceiptAfter.shares.sub(withdrawReceiptBefore.shares)).to.be.eq(sharesToInitiateWithdrawSecond);
         expect(withdrawReceiptAfter.round).to.be.eq(withdrawReceiptBefore.round);
       });
     });
@@ -286,7 +286,7 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
     });
 
     describe('settle and close', async () => {
-      // assume option expires OTM, settlement will return the origianl collateral amount
+      // assume option expires OTM, settlement will return the original collateral amount
       const settlementPayout = parseEther('1');
       before('simulate time pass', async () => {
         await ethers.provider.send('evm_increaseTime', [roundDuration]);
@@ -329,10 +329,10 @@ describe('Unit test: share calculating for pending deposit and withdraw', async 
         const sethBalanceAfter = await seth.balanceOf(vault.address);
 
         const withdrawnAmount = sethBalanceBefore.sub(sethBalanceAfter);
-        const expectedWithrawnAmount = depositAmount
+        const expectedWithdrawnAmount = depositAmount
           .div(2)
           .add(round3PremiumInEth.div(1 / initiateWithdrawSharePercentage));
-        expect(expectedWithrawnAmount).to.be.eq(withdrawnAmount);
+        expect(expectedWithdrawnAmount).to.be.eq(withdrawnAmount);
       });
       it('should be able to single a withdraw', async () => {
         // only initiate to withdraw 1 share, so that it will revert when we try to complete the withdraw but share price < 1.

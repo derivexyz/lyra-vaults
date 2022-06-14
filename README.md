@@ -52,4 +52,4 @@ The vault structure is broken down into 3x main components:
 * strategy - contracts in `strategies/` that determine what positions to trade. Everytime a trade is made, `StrategyBase.sol` takes funds from the `LyraVault.sol` and keep earned premiums until a position is partially closed or the round is ended. 
 * @lyrafinance/protocol - uses `LyraAdapter.sol` and `GWAVOracle.sol` to interact with Lyra and accrue trading rewards
 
-This component breakdown accomodates wide range of option strategies as only the contracts in the `strategy` component need to be swapped out for a novel options stratagy.
+This component breakdown accommodates wide range of option strategies as only the contracts in the `strategy` component need to be swapped out for a novel options strategy.
