@@ -1,6 +1,5 @@
-import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/protocol';
+import { lyraConstants, lyraDefaultParams, lyraEvm, TestSystem } from '@lyrafinance/protocol';
 import { toBN } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
-import { DEFAULT_PRICING_PARAMS } from '@lyrafinance/protocol/dist/test/utils/defaultParams';
 import { TestSystemContractsType } from '@lyrafinance/protocol/dist/test/utils/deployTestSystem';
 import { PricingParametersStruct } from '@lyrafinance/protocol/dist/typechain-types/OptionMarketViewer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -27,7 +26,6 @@ const strategyDetail: DeltaLongStrategyDetailStruct = {
 describe('Long Call Strategy integration test', async () => {
   // mocked tokens
   let susd: MockERC20;
-  let seth: MockERC20;
 
   let lyraTestSystem: TestSystemContractsType;
   let vault: LyraVault;
@@ -60,7 +58,7 @@ describe('Long Call Strategy integration test', async () => {
 
   before('deploy lyra core', async () => {
     const pricingParams: PricingParametersStruct = {
-      ...DEFAULT_PRICING_PARAMS,
+      ...lyraDefaultParams.PRICING_PARAMS,
       standardSize: toBN('10'),
       spotPriceFeeCoefficient: toBN('0.001'),
     };
@@ -74,7 +72,6 @@ describe('Long Call Strategy integration test', async () => {
     });
 
     // assign test tokens
-    seth = lyraTestSystem.snx.baseAsset as MockERC20;
     susd = lyraTestSystem.snx.quoteAsset as MockERC20;
 
     // set boardId
@@ -116,22 +113,15 @@ describe('Long Call Strategy integration test', async () => {
       })
     )
       .connect(manager)
-      .deploy(vault.address, TestSystem.OptionType.LONG_CALL, lyraTestSystem.GWAVOracle.address)) as DeltaLongStrategy;
+      .deploy(vault.address, TestSystem.OptionType.LONG_CALL)) as DeltaLongStrategy;
   });
 
   before('initialize strategy and adaptor', async () => {
     await strategy.connect(manager).initAdapter(
-      lyraTestSystem.testCurve.address, // curve swap
-      lyraTestSystem.optionToken.address,
+      lyraTestSystem.lyraRegistry.address,
       lyraTestSystem.optionMarket.address,
-      lyraTestSystem.liquidityPool.address,
-      lyraTestSystem.shortCollateral.address,
-      lyraTestSystem.synthetixAdapter.address,
-      lyraTestSystem.optionMarketPricer.address,
-      lyraTestSystem.optionGreekCache.address,
-      susd.address, // quote
-      seth.address, // base
-      lyraTestSystem.basicFeeCounter.address as string,
+      lyraTestSystem.testCurve.address, // curve swap
+      lyraTestSystem.basicFeeCounter.address,
     );
   });
 
@@ -213,7 +203,7 @@ describe('Long Call Strategy integration test', async () => {
     it('should revert when premium > max premium calculated with min vol', async () => {
       // significantly increasing lyra spot fees to 2% of spot to make premiums high threshold
       let pricingParams: PricingParametersStruct = {
-        ...DEFAULT_PRICING_PARAMS,
+        ...lyraDefaultParams.PRICING_PARAMS,
         standardSize: toBN('10'),
         spotPriceFeeCoefficient: toBN('0.02'),
       };
@@ -422,6 +412,7 @@ describe('Long Call Strategy integration test', async () => {
       expect(await strategy.strikeToPositionId(storedStrikeId1)).to.be.eq(0);
       expect(balanceAfter).to.be.eq(balanceBefore);
     });
+
     it('should be able to emergency close when price goes up, settled with less profit', async () => {
       const balanceBefore = (await susd.balanceOf(strategy.address)).add(await susd.balanceOf(vault.address));
       await TestSystem.marketActions.mockPrice(lyraTestSystem, toBN('3500'), 'sETH');

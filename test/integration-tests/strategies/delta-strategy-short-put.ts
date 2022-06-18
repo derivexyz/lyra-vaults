@@ -1,6 +1,5 @@
-import { lyraConstants, lyraEvm, TestSystem } from '@lyrafinance/protocol';
+import { lyraConstants, lyraDefaultParams, lyraEvm, TestSystem } from '@lyrafinance/protocol';
 import { toBN } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
-import { DEFAULT_PRICING_PARAMS } from '@lyrafinance/protocol/dist/test/utils/defaultParams';
 import { TestSystemContractsType } from '@lyrafinance/protocol/dist/test/utils/deployTestSystem';
 import { PricingParametersStruct } from '@lyrafinance/protocol/dist/typechain-types/OptionMarketViewer';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -67,7 +66,7 @@ describe('Short Put Delta Strategy integration test', async () => {
 
   before('deploy lyra core', async () => {
     const pricingParams: PricingParametersStruct = {
-      ...DEFAULT_PRICING_PARAMS,
+      ...lyraDefaultParams.PRICING_PARAMS,
       standardSize: toBN('50'),
       spotPriceFeeCoefficient: toBN('0.001'),
       vegaFeeCoefficient: toBN('60'),
@@ -124,27 +123,16 @@ describe('Short Put Delta Strategy integration test', async () => {
       })
     )
       .connect(manager)
-      .deploy(
-        vault.address,
-        TestSystem.OptionType.SHORT_PUT_QUOTE,
-        lyraTestSystem.GWAVOracle.address,
-      )) as DeltaShortStrategy;
+      .deploy(vault.address, TestSystem.OptionType.SHORT_PUT_QUOTE)) as DeltaShortStrategy;
   });
 
   before('initialize strategy and adaptor', async () => {
     // todo: remove this once we put everything in constructor
     await strategy.connect(manager).initAdapter(
-      lyraTestSystem.testCurve.address, // curve swap
-      lyraTestSystem.optionToken.address,
+      lyraTestSystem.lyraRegistry.address,
       lyraTestSystem.optionMarket.address,
-      lyraTestSystem.liquidityPool.address,
-      lyraTestSystem.shortCollateral.address,
-      lyraTestSystem.synthetixAdapter.address,
-      lyraTestSystem.optionMarketPricer.address,
-      lyraTestSystem.optionGreekCache.address,
-      susd.address, // quote
-      seth.address, // base
-      lyraTestSystem.basicFeeCounter.address as string,
+      lyraTestSystem.testCurve.address, // curve swap
+      lyraTestSystem.basicFeeCounter.address,
     );
   });
 

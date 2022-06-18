@@ -4,6 +4,8 @@
 
 The `lyra-vaults` repo is a round-based options vault able to both buy and sell options against the Lyra options market. It is intended to be used as an example project to showcase how a vault might interact with Lyra contracts, testing/deployment tools provided by the @lyrafinance/protocol SDK and various options strategies. 
 
+:warning: This project is for example use only and has not been audited. USER AT YOUR OWN RISK.
+
 ## Documentation:
 1. [Installation & Testing](#install)
 3. [Behavior](#behavior)
@@ -50,6 +52,6 @@ see [Integration Testing](docs/IntegrationTesting.md) for hardhat testing agains
 The vault structure is broken down into 3x main components:
 * vault accounting - contracts/libraries in `core/` and `libraries/` that manage share deposit/withdrawal/NAV logic as well as roll-over logic between rounds. 
 * strategy - contracts in `strategies/` that determine what positions to trade. Everytime a trade is made, `StrategyBase.sol` takes funds from the `LyraVault.sol` and keep earned premiums until a position is partially closed or the round is ended. 
-* @lyrafinance/protocol - uses `LyraAdapter.sol` and `GWAVOracle.sol` to interact with Lyra and accrue trading rewards
+* @lyrafinance/protocol - uses `LyraAdapter.sol` to interact with Lyra and accrue trading rewards
 
 This component breakdown accommodates wide range of option strategies as only the contracts in the `strategy` component need to be swapped out for a novel options strategy.

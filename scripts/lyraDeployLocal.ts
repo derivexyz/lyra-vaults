@@ -1,4 +1,11 @@
-import { getGlobalDeploys, getMarketDeploys, lyraConstants, lyraUtils, TestSystem } from '@lyrafinance/protocol';
+import {
+  getGlobalDeploys,
+  getMarketDeploys,
+  lyraConstants,
+  lyraDefaultParams,
+  lyraUtils,
+  TestSystem,
+} from '@lyrafinance/protocol';
 import { toBN } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
 import { DeployOverrides } from '@lyrafinance/protocol/dist/test/utils/deployTestSystem';
 import { ethers } from 'ethers';
@@ -7,10 +14,13 @@ async function main() {
   // Deploy Lyra market on localhost //
   /////////////////////////////////////
 
+  // run `yarn hardhat node` in terminal
+
   // 1. get local deployer and network
   const provider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
 
-  const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // enter address with ETH
+  // enter address with local ETH
+  const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
   provider.getGasPrice = async () => {
     return ethers.BigNumber.from('0');
   };
@@ -18,13 +28,14 @@ async function main() {
     return ethers.BigNumber.from(15000000);
   }; // max limit to prevent run out of gas errors
   const deployer = new ethers.Wallet(privateKey, provider);
+  console.log(deployer.address);
 
   // 2. deploy and seed market with overrides
   const exportAddresses = true;
   const enableTracer = false;
   const overrides: DeployOverrides = {
     minCollateralParams: {
-      ...TestSystem.defaultParams.minCollateralParams,
+      ...lyraDefaultParams.MIN_COLLATERAL_PARAMS,
       minStaticBaseCollateral: lyraUtils.toBN('0.001'),
     },
   };
@@ -48,9 +59,11 @@ async function main() {
   // let newMarketSystem = await addNewMarketSystem(deployer, localTestSystem, 'sBTC', exportAddresses)
   // await seedNewMarketSystem(deployer, localTestSystem, newMarketSystem)
 
-  ///////////////////////////////////////////////////
-  // Interact with kovan-ovm/mainnet-ovm contracts //
-  ///////////////////////////////////////////////////
+  /////////////////////////////
+  // Interact with contracts //
+  /////////////////////////////
+
+  // For kovan/ovm refer to `kovanInteraction.ts`
 
   // 'local' used here as example, but can pass in 'kovan-ovm' or 'mainnet-ovm' instead of 'local'.
   // 1. get global contracts

@@ -7,9 +7,6 @@ import "hardhat/console.sol";
 // standard strategy interface
 import "../interfaces/IStrategy.sol";
 
-// Lyra
-import {GWAVOracle} from "@lyrafinance/protocol/contracts/periphery/GWAVOracle.sol";
-
 // Libraries
 import {Vault} from "../libraries/Vault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -47,11 +44,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
   // ADMIN //
   ///////////
 
-  constructor(
-    LyraVault _vault,
-    OptionType _optionType,
-    GWAVOracle _gwavOracle
-  ) StrategyBase(_vault, _optionType, _gwavOracle) {}
+  constructor(LyraVault _vault, OptionType _optionType) StrategyBase(_vault, _optionType) {}
 
   /**
    * @dev update the strategy detail for the new round.
@@ -67,7 +60,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
    * @param boardId lyra board Id.
    */
   function setBoard(uint boardId) external onlyVault {
-    Board memory board = getBoard(boardId);
+    Board memory board = _getBoard(boardId);
     require(_isValidExpiry(board.expiry), "invalid board");
     activeExpiry = board.expiry;
   }
@@ -111,7 +104,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     );
     require(_isValidVolVariance(strikeId), "vol variance exceeded");
 
-    Strike memory strike = getStrikes(_toDynamic(strikeId))[0];
+    Strike memory strike = _getStrikes(_toDynamic(strikeId))[0];
     require(isValidStrike(strike), "invalid strike");
 
     uint setCollateralTo;
@@ -137,13 +130,13 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     returns (uint collateralToAdd, uint setCollateralTo)
   {
     uint sellAmount = strategyDetail.size;
-    ExchangeRateParams memory exchangeParams = getExchangeParams();
+    ExchangeRateParams memory exchangeParams = _getExchangeParams();
 
     // get existing position info if active
     uint existingAmount = 0;
     uint existingCollateral = 0;
     if (_isActiveStrike(strike.id)) {
-      OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strike.id]))[0];
+      OptionPosition memory position = _getPositions(_toDynamic(strikeToPositionId[strike.id]))[0];
       existingCollateral = position.collateral;
       existingAmount = position.amount;
     }
@@ -184,7 +177,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     // get minimum expected premium based on minIv
     uint minExpectedPremium = _getPremiumLimit(strike, strategyDetail.minVol, strategyDetail.size);
     // perform trade
-    TradeResult memory result = openPosition(
+    TradeResult memory result = _openPosition(
       TradeInputParameters({
         strikeId: strike.id,
         positionId: strikeToPositionId[strike.id],
@@ -215,8 +208,8 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     uint closeAmount,
     address lyraRewardRecipient
   ) external onlyVault {
-    OptionPosition memory position = getPositions(_toDynamic(positionId))[0];
-    Strike memory strike = getStrikes(_toDynamic(position.strikeId))[0];
+    OptionPosition memory position = _getPositions(_toDynamic(positionId))[0];
+    Strike memory strike = _getStrikes(_toDynamic(position.strikeId))[0];
     require(strikeToPositionId[position.strikeId] == positionId, "invalid positionId");
 
     // only allows closing if collat < minBuffer
@@ -227,7 +220,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
 
     // closes excess position with premium balance
     uint maxExpectedPremium = _getPremiumLimit(strike, strategyDetail.maxVol, strategyDetail.size);
-    _closeOrForceClosePosition(position, closeAmount, 0, maxExpectedPremium, lyraRewardRecipient);
+    _formatedCloseOrForceClosePosition(position, closeAmount, 0, maxExpectedPremium, lyraRewardRecipient);
 
     // return closed collateral amount
     if (_isBaseCollat()) {
@@ -243,12 +236,12 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
    * @dev close all outstanding positions regardless of collat and send funds back to vault
    */
   function emergencyCloseAll(address lyraRewardRecipient) external onlyVault {
-    // the vault might not hold enough sUSD to close all positions, will need someone to topup before doing so.
+    // the vault might not hold enough sUSD to close all positions, will need someone to tapup before doing so.
     for (uint i = 0; i < activeStrikeIds.length; i++) {
       uint strikeId = activeStrikeIds[i];
-      OptionPosition memory position = getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
+      OptionPosition memory position = _getPositions(_toDynamic(strikeToPositionId[strikeId]))[0];
       // revert if position state is not settled
-      _closeOrForceClosePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
+      _formatedCloseOrForceClosePosition(position, position.amount, 0, type(uint).max, lyraRewardRecipient);
       delete strikeToPositionId[strikeId];
       delete lastTradeTimestamp[strikeId];
     }
@@ -264,7 +257,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     uint strikePrice,
     uint strikeExpiry
   ) public view returns (uint closeAmount) {
-    ExchangeRateParams memory exchangeParams = getExchangeParams();
+    ExchangeRateParams memory exchangeParams = _getExchangeParams();
     uint minCollatPerAmount = _getBufferCollateral(strikePrice, strikeExpiry, exchangeParams.spotPrice, 1e18);
 
     closeAmount = position.collateral < minCollatPerAmount.multiplyDecimal(position.amount)
@@ -290,7 +283,7 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     uint spotPrice,
     uint amount
   ) internal view returns (uint) {
-    uint minCollat = getMinCollateral(optionType, strikePrice, expiry, spotPrice, amount);
+    uint minCollat = _getMinCollateral(optionType, strikePrice, expiry, spotPrice, amount);
     uint minCollatWithBuffer = minCollat.multiplyDecimal(strategyDetail.collatBuffer);
 
     uint fullCollat = _getFullCollateral(strikePrice, amount);
@@ -312,8 +305,8 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
     }
 
     uint[] memory strikeId = _toDynamic(strike.id);
-    uint vol = getVols(strikeId)[0];
-    int callDelta = getDeltas(strikeId)[0];
+    uint vol = _getVols(strikeId)[0];
+    int callDelta = _getDeltas(strikeId)[0];
     int delta = _isCall() ? callDelta : callDelta - SignedDecimalMath.UNIT;
     uint deltaGap = _abs(strategyDetail.targetDelta - delta);
     return vol >= strategyDetail.minVol && vol <= strategyDetail.maxVol && deltaGap < strategyDetail.maxDeltaGap;
@@ -323,8 +316,8 @@ contract DeltaShortStrategy is StrategyBase, IStrategy {
    * @dev check if the vol variance for the given strike is within certain range
    */
   function _isValidVolVariance(uint strikeId) internal view returns (bool isValid) {
-    uint volGWAV = gwavOracle.volGWAV(strikeId, strategyDetail.gwavPeriod);
-    uint volSpot = getVols(_toDynamic(strikeId))[0];
+    uint volGWAV = _volGWAV(strikeId, strategyDetail.gwavPeriod);
+    uint volSpot = _getVols(_toDynamic(strikeId))[0];
 
     uint volDiff = (volGWAV >= volSpot) ? volGWAV - volSpot : volSpot - volGWAV;
 
