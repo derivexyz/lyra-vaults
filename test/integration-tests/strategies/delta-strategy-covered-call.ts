@@ -199,6 +199,9 @@ describe('Covered Call Delta Strategy integration test', async () => {
         'cannot change strategy if round is active',
       );
     });
+    it('should return correct totalBalance', async () => {
+      expect((await vault.totalBalance()).eq(toBN('100'))).to.be.true;
+    });
     it('will not trade when delta is out of range"', async () => {
       // 2500 is a bad strike because delta is close to 1
       await expect(vault.connect(randomUser).trade(strikes[0])).to.be.revertedWith('invalid strike');

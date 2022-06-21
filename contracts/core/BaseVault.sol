@@ -493,7 +493,8 @@ contract BaseVault is ReentrancyGuard, Ownable, ERC20, Initializable {
    * @return total balance of the vault, including the amounts locked in third party protocols
    */
   function totalBalance() public view returns (uint) {
-    return uint(vaultState.lockedAmount) + IERC20(vaultParams.asset).balanceOf(address(this));
+    return
+      uint(vaultState.lockedAmount - vaultState.lockedAmountLeft) + IERC20(vaultParams.asset).balanceOf(address(this));
   }
 
   /**
