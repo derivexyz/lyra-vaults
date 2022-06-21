@@ -14,6 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const lyraGlobal = getGlobalDeploys('kovan-ovm');
 
   await deploy('DeltaShortStrategy', {
+    //todo: make this swappable with long strategies
     from: deployer,
     args: [lyraVault.address, TestSystem.OptionType.SHORT_PUT_QUOTE],
     libraries: {
@@ -39,4 +40,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log('executed...');
 };
 export default func;
-func.tags = ['DeltaShortStrategy'];
+func.tags = ['DeltaStrategy'];
