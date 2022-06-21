@@ -6,11 +6,11 @@ import path from 'path';
 
 export function loadEnv() {
   const defaultEnv = dotenv.config({
-    path: 'scripts/.env.defaults',
+    path: '.env.defaults',
   }) as any;
 
   const privEnv = dotenv.config({
-    path: path.join('scripts', '.env.private'),
+    path: path.join('.env.private'),
   }) as any;
 
   return {
