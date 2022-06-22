@@ -15,3 +15,7 @@ dist/
 coverage
 coverage.json
 
+# deployments
+deployments/kovan-ovm/solcInputs/
+deployments/kovan-ovm/.chainId
+deployments/local/
