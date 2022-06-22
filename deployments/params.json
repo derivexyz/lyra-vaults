@@ -1,0 +1,18 @@
+{
+  "network": "kovan-ovm",
+  "contract": "DeltaShortStrategy",
+  "strategyDetail": {
+    "minTimeToExpiry": 432000,  
+    "maxTimeToExpiry": 864000,
+    "targetDelta": "0.2", 
+    "maxDeltaGap": "0.15", 
+    "minVol": "0.3", 
+    "maxVol": "2", 
+    "size": "5",
+    "minTradeInterval": 600,
+    "maxVolVariance": "1", 
+    "gwavPeriod": 3600,
+    "collatBuffer": "1.5",
+    "collatPercent": "0.75"
+  }
+}

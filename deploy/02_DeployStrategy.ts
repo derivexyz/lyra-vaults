@@ -2,6 +2,7 @@ import { getGlobalDeploys, getMarketDeploys, TestSystem } from '@lyrafinance/pro
 import { ZERO_ADDRESS } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { loadStrategyParams } from '../scripts/utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -10,11 +11,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const lyraVault = await deployments.get('LyraVault');
 
-  // get lyra addresses
-  const lyraGlobal = getGlobalDeploys('kovan-ovm');
+  const strategyParams = loadStrategyParams();
 
-  await deploy('DeltaShortStrategy', {
-    //todo: make this swappable with long strategies
+  // get lyra addresses
+  const lyraGlobal = getGlobalDeploys(strategyParams.network);
+
+  await deploy(strategyParams.contract, {
     from: deployer,
     args: [lyraVault.address, TestSystem.OptionType.SHORT_PUT_QUOTE],
     libraries: {
@@ -25,8 +27,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const lyraMarket = getMarketDeploys('kovan-ovm', 'sETH');
 
+  // init Lyra Adapter
   await deployments.execute(
-    'DeltaShortStrategy',
+    strategyParams.contract,
     {
       from: deployer,
       log: true,
@@ -37,7 +40,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ZERO_ADDRESS, // curve swap
     ZERO_ADDRESS, // basic fee counter (not yet deployed by lyra)
   );
-  console.log('executed...');
+  console.log('initAdapter complete...');
+
+  // link strategy to vault
+  await deployments.execute(
+    'LyraVault',
+    {
+      from: deployer,
+      log: true,
+    },
+    'setStrategy',
+    (
+      await deployments.get(strategyParams.contract)
+    ).address,
+  );
+  console.log('setStrategy complete...');
 };
 export default func;
-func.tags = ['DeltaStrategy'];
+func.tags = ['DeployStrategy'];

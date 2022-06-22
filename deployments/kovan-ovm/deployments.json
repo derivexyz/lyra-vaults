@@ -3,7 +3,7 @@
   "chainId": "69",
   "contracts": {
     "DeltaShortStrategy": {
-      "address": "0xFA76c04B94705C686657d621911419988Aec69c2",
+      "address": "0x9b75fa0c8baa2A05F0bA700D8D742CdABD5e2781",
       "abi": [
         {
           "inputs": [
@@ -885,7 +885,7 @@
       ]
     },
     "LyraVault": {
-      "address": "0xA51F6B20226B2d6e8DCcEB08D67Ff869faf16095",
+      "address": "0xF7D044D582666634A03EC7083d7a4EE439FBcef7",
       "abi": [
         {
           "inputs": [
