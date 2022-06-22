@@ -29,7 +29,8 @@
     "prettier:json:md": "prettier --config .prettierrc --write \"**/*.{json,md}\"",
     "prettier": "yarn prettier:sol && yarn prettier:ts",
     "size": "hardhat size-contracts",
-    "gas-report": "REPORT_GAS=true yarn hardhat test"
+    "gas-report": "REPORT_GAS=true yarn hardhat test",
+    "verify": "yarn clean && yarn hardhat run scripts/etherscanVerify.ts"
   },
   "author": "",
   "license": "ISC",
@@ -89,7 +90,7 @@
   },
   "dependencies": {
     "@ethersproject/abi": "^5.4.0",
-    "@nomiclabs/hardhat-etherscan": "^2.1.6",
+    "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@typechain/hardhat": "^3.0.0",
     "dotenv": "^10.0.0",
     "hardhat-tracer": "1.0.0-alpha.6",

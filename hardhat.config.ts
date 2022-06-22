@@ -1,6 +1,7 @@
 import '@eth-optimism/plugins/hardhat/compiler';
 import { lyraContractPaths } from '@lyrafinance/protocol/dist/test/utils/package/index-paths';
 import '@nomiclabs/hardhat-ethers';
+import '@nomiclabs/hardhat-etherscan';
 import '@nomiclabs/hardhat-waffle';
 import '@typechain/hardhat';
 import * as dotenv from 'dotenv';
@@ -53,7 +54,7 @@ export default {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1,
+        runs: 1000,
       },
     },
   },

@@ -1,7 +1,7 @@
-import { getGlobalDeploys, getMarketDeploys, lyraConstants } from '@lyrafinance/protocol';
-import { ethers } from 'ethers';
+import { getGlobalDeploys, getMarketDeploys } from '@lyrafinance/protocol';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { loadParams } from '../scripts/utils';
 
 // run with `yarn hardhat deploy --network kovan-ovm --export deployments/kovan-ovm/deployments.json`
 
@@ -11,13 +11,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deploy } = deployments;
 
-  // const envVars = loadEnv();
-  // const deployer = new ethers.Wallet(envVars.PRIVATE_KEY);
   const { deployer } = await getNamedAccounts();
+  const params = loadParams();
 
   // get lyra addresses
-  const lyraGlobal = getGlobalDeploys('kovan-ovm');
-  const lyraMarket = getMarketDeploys('kovan-ovm', 'sETH');
+  const lyraGlobal = getGlobalDeploys(params.network);
+  const lyraMarket = getMarketDeploys(params.network, params.vault.market);
 
   console.log(deployer);
   await deploy('LyraVault', {
@@ -25,12 +24,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [
       lyraGlobal.QuoteAsset.address,
       deployer, // feeRecipient,
-      lyraConstants.DAY_SEC * 7,
-      'LyraVault Share',
-      'Lyra VS',
+      params.vault.roundDuration,
+      params.vault.tokenName,
+      params.vault.tokenSymbol,
       {
-        decimals: 18,
-        cap: ethers.utils.parseEther('100000'),
+        decimals: params.vault.decimals,
+        cap: params.vault.cap,
         asset: lyraMarket.BaseAsset.address,
       },
     ],

@@ -4,10 +4,21 @@ import dotenv from 'dotenv';
 import { BigNumber, Contract, ethers } from 'ethers';
 import path from 'path';
 
-export type StrategyParams = {
+export type Params = {
   network: string;
   contract: string;
+  optionType: number;
   strategyDetail: StrategyDetail;
+  vault: VaultParams;
+};
+
+export type VaultParams = {
+  market: 'sETH';
+  roundDuration: 604800;
+  tokenName: 'LyraVault Share';
+  tokenSymbol: 'Lyra VS';
+  decimals: 18;
+  cap: '100000';
 };
 
 export type StrategyDetail = {
@@ -40,7 +51,7 @@ export function loadEnv() {
   };
 }
 
-export function loadStrategyParams(): StrategyParams {
+export function loadParams(): Params {
   const data = require(path.join(__dirname, '../deployments', 'params.json'));
   // to bypass hardhat-deploy
   const formatted = JSON.parse(JSON.stringify(data));
@@ -50,7 +61,28 @@ export function loadStrategyParams(): StrategyParams {
       formatted.strategyDetail[key] = ethers.utils.parseUnits(formatted.strategyDetail[key], 18);
     }
   });
+  formatted.vault.cap = ethers.utils.parseUnits(formatted.vault.cap, 18);
+  formatted.optionType = toOptionType(formatted.optionType);
+
   return formatted;
+}
+
+export function toOptionType(optionName: string): number {
+  switch (optionName) {
+    case 'LONG_CALL':
+      return 0;
+    case 'LONG_PUT':
+      return 1;
+    case 'SHORT_CALL_BASE':
+      return 2;
+    case 'SHORT_CALL_QUOTE':
+      return 3;
+    case 'SHORT_PUT_QUOTE':
+      return 4;
+  }
+  throw Error(
+    'Invalid OptionType, must be: LONG_CALL | LONG_PUT | SHORT_CALL_BASE | SHORT_CALL_QUOTE | SHORT_PUT_QUOTE',
+  );
 }
 
 export async function execute(contract: Contract, func: string, args: any[], provider: JsonRpcProvider) {

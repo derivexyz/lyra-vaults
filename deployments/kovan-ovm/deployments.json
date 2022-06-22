@@ -2,890 +2,8 @@
   "name": "kovan-ovm",
   "chainId": "69",
   "contracts": {
-    "DeltaShortStrategy": {
-      "address": "0x9b75fa0c8baa2A05F0bA700D8D742CdABD5e2781",
-      "abi": [
-        {
-          "inputs": [
-            {
-              "internalType": "contract LyraVault",
-              "name": "_vault",
-              "type": "address"
-            },
-            {
-              "internalType": "enum LyraAdapter.OptionType",
-              "name": "_optionType",
-              "type": "uint8"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "constructor"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "thrower",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "baseExpected",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "baseReceived",
-              "type": "uint256"
-            }
-          ],
-          "name": "ExchangerBaseReceivedTooLow",
-          "type": "error"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "thrower",
-              "type": "address"
-            },
-            {
-              "internalType": "uint256",
-              "name": "quoteExpected",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "quoteReceived",
-              "type": "uint256"
-            }
-          ],
-          "name": "ExchangerQuoteReceivedTooLow",
-          "type": "error"
-        },
-        {
-          "anonymous": false,
-          "inputs": [
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "previousOwner",
-              "type": "address"
-            },
-            {
-              "indexed": true,
-              "internalType": "address",
-              "name": "newOwner",
-              "type": "address"
-            }
-          ],
-          "name": "OwnershipTransferred",
-          "type": "event"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "expiry",
-              "type": "uint256"
-            }
-          ],
-          "name": "_isValidExpiry",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "isValid",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "strikeId",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "secondsAgo",
-              "type": "uint256"
-            }
-          ],
-          "name": "_optionPriceGWAV",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "callPrice",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "putPrice",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "activeExpiry",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "name": "activeStrikeIds",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "baseAsset",
-          "outputs": [
-            {
-              "internalType": "contract IERC20",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "collateralAsset",
-          "outputs": [
-            {
-              "internalType": "contract IERC20",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "curveSwap",
-          "outputs": [
-            {
-              "internalType": "contract ICurve",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "strikeId",
-              "type": "uint256"
-            },
-            {
-              "internalType": "address",
-              "name": "lyraRewardRecipient",
-              "type": "address"
-            }
-          ],
-          "name": "doTrade",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "positionId",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "premiumReceived",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collateralToAdd",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "lyraRewardRecipient",
-              "type": "address"
-            }
-          ],
-          "name": "emergencyCloseAll",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "feeCounter",
-          "outputs": [
-            {
-              "internalType": "contract BasicFeeCounter",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "components": [
-                {
-                  "internalType": "uint256",
-                  "name": "positionId",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "strikeId",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "enum LyraAdapter.OptionType",
-                  "name": "optionType",
-                  "type": "uint8"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "amount",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "collateral",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "enum LyraAdapter.PositionState",
-                  "name": "state",
-                  "type": "uint8"
-                }
-              ],
-              "internalType": "struct LyraAdapter.OptionPosition",
-              "name": "position",
-              "type": "tuple"
-            },
-            {
-              "internalType": "uint256",
-              "name": "strikePrice",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "strikeExpiry",
-              "type": "uint256"
-            }
-          ],
-          "name": "getAllowedCloseAmount",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "closeAmount",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "components": [
-                {
-                  "internalType": "uint256",
-                  "name": "id",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "expiry",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "strikePrice",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "skew",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "boardIv",
-                  "type": "uint256"
-                }
-              ],
-              "internalType": "struct LyraAdapter.Strike",
-              "name": "strike",
-              "type": "tuple"
-            }
-          ],
-          "name": "getRequiredCollateral",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "collateralToAdd",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "setCollateralTo",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "greekCache",
-          "outputs": [
-            {
-              "internalType": "contract OptionGreekCache",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "gwavOracle",
-          "outputs": [
-            {
-              "internalType": "contract GWAVOracle",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "_lyraRegistry",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "_optionMarket",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "_curveSwap",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "_feeCounter",
-              "type": "address"
-            }
-          ],
-          "name": "initAdapter",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "components": [
-                {
-                  "internalType": "uint256",
-                  "name": "id",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "expiry",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "strikePrice",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "skew",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "boardIv",
-                  "type": "uint256"
-                }
-              ],
-              "internalType": "struct LyraAdapter.Strike",
-              "name": "strike",
-              "type": "tuple"
-            }
-          ],
-          "name": "isValidStrike",
-          "outputs": [
-            {
-              "internalType": "bool",
-              "name": "isValid",
-              "type": "bool"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "name": "lastTradeTimestamp",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "liquidityPool",
-          "outputs": [
-            {
-              "internalType": "contract LiquidityPool",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "lyraRegistry",
-          "outputs": [
-            {
-              "internalType": "contract LyraRegistry",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "optionMarket",
-          "outputs": [
-            {
-              "internalType": "contract OptionMarket",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "optionPricer",
-          "outputs": [
-            {
-              "internalType": "contract OptionMarketPricer",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "optionToken",
-          "outputs": [
-            {
-              "internalType": "contract OptionToken",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "optionType",
-          "outputs": [
-            {
-              "internalType": "enum LyraAdapter.OptionType",
-              "name": "",
-              "type": "uint8"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "owner",
-          "outputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "quoteAsset",
-          "outputs": [
-            {
-              "internalType": "contract IERC20",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "positionId",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "closeAmount",
-              "type": "uint256"
-            },
-            {
-              "internalType": "address",
-              "name": "lyraRewardRecipient",
-              "type": "address"
-            }
-          ],
-          "name": "reducePosition",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "renounceOwnership",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "returnFundsAndClearStrikes",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "boardId",
-              "type": "uint256"
-            }
-          ],
-          "name": "setBoard",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "_lyraRegistry",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "_optionMarket",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "_curveSwap",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "_feeCounter",
-              "type": "address"
-            }
-          ],
-          "name": "setLyraAddresses",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "components": [
-                {
-                  "internalType": "uint256",
-                  "name": "minTimeToExpiry",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "maxTimeToExpiry",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "int256",
-                  "name": "targetDelta",
-                  "type": "int256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "maxDeltaGap",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "minVol",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "maxVol",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "size",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "minTradeInterval",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "maxVolVariance",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "gwavPeriod",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "collatBuffer",
-                  "type": "uint256"
-                },
-                {
-                  "internalType": "uint256",
-                  "name": "collatPercent",
-                  "type": "uint256"
-                }
-              ],
-              "internalType": "struct DeltaShortStrategy.DeltaShortStrategyDetail",
-              "name": "_deltaStrategy",
-              "type": "tuple"
-            }
-          ],
-          "name": "setStrategyDetail",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "shortCollateral",
-          "outputs": [
-            {
-              "internalType": "contract ShortCollateral",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "strategyDetail",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "minTimeToExpiry",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "maxTimeToExpiry",
-              "type": "uint256"
-            },
-            {
-              "internalType": "int256",
-              "name": "targetDelta",
-              "type": "int256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "maxDeltaGap",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "minVol",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "maxVol",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "size",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "minTradeInterval",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "maxVolVariance",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "gwavPeriod",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collatBuffer",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "collatPercent",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "name": "strikeToPositionId",
-          "outputs": [
-            {
-              "internalType": "uint256",
-              "name": "",
-              "type": "uint256"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        },
-        {
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "newOwner",
-              "type": "address"
-            }
-          ],
-          "name": "transferOwnership",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "updateDelegateApproval",
-          "outputs": [],
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "inputs": [],
-          "name": "vault",
-          "outputs": [
-            {
-              "internalType": "contract LyraVault",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "stateMutability": "view",
-          "type": "function"
-        }
-      ]
-    },
     "LyraVault": {
-      "address": "0xF7D044D582666634A03EC7083d7a4EE439FBcef7",
+      "address": "0xAb8009Fd6F4D15bDe862BefcEB5814a868fDE861",
       "abi": [
         {
           "inputs": [
@@ -2095,6 +1213,887 @@
         }
       ]
     },
-    "deployments": {}
+    "DeltaShortStrategy": {
+      "address": "0x1C49f2fbE6bE946cf6928B654702dE3F9Ea734F1",
+      "abi": [
+        {
+          "inputs": [
+            {
+              "internalType": "contract LyraVault",
+              "name": "_vault",
+              "type": "address"
+            },
+            {
+              "internalType": "enum LyraAdapter.OptionType",
+              "name": "_optionType",
+              "type": "uint8"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "constructor"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "thrower",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "baseExpected",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "baseReceived",
+              "type": "uint256"
+            }
+          ],
+          "name": "ExchangerBaseReceivedTooLow",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "thrower",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "quoteExpected",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "quoteReceived",
+              "type": "uint256"
+            }
+          ],
+          "name": "ExchangerQuoteReceivedTooLow",
+          "type": "error"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "previousOwner",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+            }
+          ],
+          "name": "OwnershipTransferred",
+          "type": "event"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "expiry",
+              "type": "uint256"
+            }
+          ],
+          "name": "_isValidExpiry",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "isValid",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "strikeId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "secondsAgo",
+              "type": "uint256"
+            }
+          ],
+          "name": "_optionPriceGWAV",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "callPrice",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "putPrice",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "activeExpiry",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "activeStrikeIds",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "baseAsset",
+          "outputs": [
+            {
+              "internalType": "contract IERC20",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "collateralAsset",
+          "outputs": [
+            {
+              "internalType": "contract IERC20",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "curveSwap",
+          "outputs": [
+            {
+              "internalType": "contract ICurve",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "strikeId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "lyraRewardRecipient",
+              "type": "address"
+            }
+          ],
+          "name": "doTrade",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "positionId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "premiumReceived",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "collateralToAdd",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "lyraRewardRecipient",
+              "type": "address"
+            }
+          ],
+          "name": "emergencyCloseAll",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "feeCounter",
+          "outputs": [
+            {
+              "internalType": "contract BasicFeeCounter",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "positionId",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "strikeId",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "enum LyraAdapter.OptionType",
+                  "name": "optionType",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "amount",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "collateral",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "enum LyraAdapter.PositionState",
+                  "name": "state",
+                  "type": "uint8"
+                }
+              ],
+              "internalType": "struct LyraAdapter.OptionPosition",
+              "name": "position",
+              "type": "tuple"
+            },
+            {
+              "internalType": "uint256",
+              "name": "strikePrice",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "strikeExpiry",
+              "type": "uint256"
+            }
+          ],
+          "name": "getAllowedCloseAmount",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "closeAmount",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "id",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "expiry",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "strikePrice",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "skew",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "boardIv",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct LyraAdapter.Strike",
+              "name": "strike",
+              "type": "tuple"
+            }
+          ],
+          "name": "getRequiredCollateral",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "collateralToAdd",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "setCollateralTo",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "greekCache",
+          "outputs": [
+            {
+              "internalType": "contract OptionGreekCache",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "gwavOracle",
+          "outputs": [
+            {
+              "internalType": "contract GWAVOracle",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_lyraRegistry",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_optionMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_curveSwap",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_feeCounter",
+              "type": "address"
+            }
+          ],
+          "name": "initAdapter",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "id",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "expiry",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "strikePrice",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "skew",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "boardIv",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct LyraAdapter.Strike",
+              "name": "strike",
+              "type": "tuple"
+            }
+          ],
+          "name": "isValidStrike",
+          "outputs": [
+            {
+              "internalType": "bool",
+              "name": "isValid",
+              "type": "bool"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "lastTradeTimestamp",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "liquidityPool",
+          "outputs": [
+            {
+              "internalType": "contract LiquidityPool",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "lyraRegistry",
+          "outputs": [
+            {
+              "internalType": "contract LyraRegistry",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "optionMarket",
+          "outputs": [
+            {
+              "internalType": "contract OptionMarket",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "optionPricer",
+          "outputs": [
+            {
+              "internalType": "contract OptionMarketPricer",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "optionToken",
+          "outputs": [
+            {
+              "internalType": "contract OptionToken",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "optionType",
+          "outputs": [
+            {
+              "internalType": "enum LyraAdapter.OptionType",
+              "name": "",
+              "type": "uint8"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "owner",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "quoteAsset",
+          "outputs": [
+            {
+              "internalType": "contract IERC20",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "positionId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "closeAmount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "lyraRewardRecipient",
+              "type": "address"
+            }
+          ],
+          "name": "reducePosition",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "renounceOwnership",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "returnFundsAndClearStrikes",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "boardId",
+              "type": "uint256"
+            }
+          ],
+          "name": "setBoard",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_lyraRegistry",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_optionMarket",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_curveSwap",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_feeCounter",
+              "type": "address"
+            }
+          ],
+          "name": "setLyraAddresses",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "components": [
+                {
+                  "internalType": "uint256",
+                  "name": "minTimeToExpiry",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "maxTimeToExpiry",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "int256",
+                  "name": "targetDelta",
+                  "type": "int256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "maxDeltaGap",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "minVol",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "maxVol",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "size",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "minTradeInterval",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "maxVolVariance",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "gwavPeriod",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "collatBuffer",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "collatPercent",
+                  "type": "uint256"
+                }
+              ],
+              "internalType": "struct DeltaShortStrategy.DeltaShortStrategyDetail",
+              "name": "_deltaStrategy",
+              "type": "tuple"
+            }
+          ],
+          "name": "setStrategyDetail",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "shortCollateral",
+          "outputs": [
+            {
+              "internalType": "contract ShortCollateral",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "strategyDetail",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "minTimeToExpiry",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxTimeToExpiry",
+              "type": "uint256"
+            },
+            {
+              "internalType": "int256",
+              "name": "targetDelta",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxDeltaGap",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "minVol",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxVol",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "size",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "minTradeInterval",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "maxVolVariance",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "gwavPeriod",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "collatBuffer",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "collatPercent",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "name": "strikeToPositionId",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+            }
+          ],
+          "name": "transferOwnership",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "updateDelegateApproval",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "vault",
+          "outputs": [
+            {
+              "internalType": "contract LyraVault",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ]
+    }
   }
 }

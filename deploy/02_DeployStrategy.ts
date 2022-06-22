@@ -1,33 +1,33 @@
-import { getGlobalDeploys, getMarketDeploys, TestSystem } from '@lyrafinance/protocol';
+import { getGlobalDeploys, getMarketDeploys } from '@lyrafinance/protocol';
 import { ZERO_ADDRESS } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { loadStrategyParams } from '../scripts/utils';
+import { loadParams } from '../scripts/utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
   const lyraVault = await deployments.get('LyraVault');
-  const strategyParams = loadStrategyParams();
+  const params = loadParams();
 
   // get lyra addresses
-  const lyraGlobal = getGlobalDeploys(strategyParams.network);
+  const lyraGlobal = getGlobalDeploys(params.network);
 
-  await deploy(strategyParams.contract, {
+  await deploy(params.contract, {
     from: deployer,
-    args: [lyraVault.address, TestSystem.OptionType.SHORT_PUT_QUOTE],
+    args: [lyraVault.address, params.optionType],
     libraries: {
       BlackScholes: lyraGlobal.BlackScholes.address,
     },
     log: true,
   });
 
-  const lyraMarket = getMarketDeploys('kovan-ovm', 'sETH');
+  const lyraMarket = getMarketDeploys(params.network, params.vault.market);
 
   // init Lyra Adapter
   await deployments.execute(
-    strategyParams.contract,
+    params.contract,
     {
       from: deployer,
       log: true,
@@ -49,7 +49,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     },
     'setStrategy',
     (
-      await deployments.get(strategyParams.contract)
+      await deployments.get(params.contract)
     ).address,
   );
   console.log('setStrategy complete...');

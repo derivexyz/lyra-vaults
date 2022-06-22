@@ -1,21 +1,21 @@
 import { DeployFunction } from 'hardhat-deploy/types';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { loadStrategyParams } from '../scripts/utils';
+import { loadParams } from '../scripts/utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deployer } = await getNamedAccounts();
-  const strategyParams = loadStrategyParams();
+  const params = loadParams();
 
   // set strategyDetail
   await deployments.execute(
-    strategyParams.contract,
+    params.contract,
     {
       from: deployer,
       log: true,
     },
     'setStrategyDetail',
-    strategyParams.strategyDetail,
+    params.strategyDetail,
   );
   console.log('setStrategyDetail complete...');
 };

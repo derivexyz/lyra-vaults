@@ -1,9 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-// Hardhat
-import "hardhat/console.sol";
-
 // standard strategy interface
 import "../interfaces/IStrategy.sol";
 
