@@ -26,7 +26,7 @@ async function main() {
     ],
   });
 
-  // Strategy
+  // Strategy: currently failing due to size of LyraAdapter...
   await hre.run('verify:verify', {
     address: (await hre.deployments.get(params.contract)).address,
     constructorArguments: [(await hre.deployments.get('LyraVault')).address, params.optionType],
