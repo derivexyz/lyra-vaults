@@ -1,9 +1,10 @@
 import { getGlobalDeploys, getMarketDeploys } from '@lyrafinance/protocol';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { loadParams } from '../scripts/utils';
+import { loadParams, Params } from '../scripts/utils';
 
 // run with `yarn hardhat deploy --network kovan-ovm --export deployments/kovan-ovm/deployments.json`
+// also set "network: kovan-ovm" in the params.json folder.
 
 // `hardhat.config.ts` uses `.env.defaults/private` to assign deployer address
 
@@ -12,13 +13,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
 
   const { deployer } = await getNamedAccounts();
-  const params = loadParams();
+  const params = loadParams() as Params;
 
   // get lyra addresses
   const lyraGlobal = getGlobalDeploys(params.network);
   const lyraMarket = getMarketDeploys(params.network, params.vault.market);
 
-  console.log(deployer);
   await deploy('LyraVault', {
     from: deployer,
     args: [
@@ -30,7 +30,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       {
         decimals: params.vault.decimals,
         cap: params.vault.cap,
-        asset: lyraMarket.BaseAsset.address,
+        // vault deposit asset depends on strategy
+        asset: params.vault.depositAsset === 'quote' ? lyraGlobal.QuoteAsset.address : lyraMarket.BaseAsset.address,
       },
     ],
     log: true,

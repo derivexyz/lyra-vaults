@@ -6,16 +6,17 @@
     "tokenName": "LyraVault Share",
     "tokenSymbol": "Lyra VS",
     "decimals": 18,
-    "cap": "100000"
+    "cap": "100000",
+    "depositAsset": "quote"
   },
   "contract": "DeltaShortStrategy",
   "optionType": "SHORT_PUT_QUOTE",
   "strategyDetail": {
     "minTimeToExpiry": 432000,  
-    "maxTimeToExpiry": 864000,
-    "targetDelta": "0.2", 
+    "maxTimeToExpiry": 1296000,
+    "targetDelta": "-0.2", 
     "maxDeltaGap": "0.15", 
-    "minVol": "0.3", 
+    "minVol": "0", 
     "maxVol": "2", 
     "size": "5",
     "minTradeInterval": 600,
