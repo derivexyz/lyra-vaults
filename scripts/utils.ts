@@ -13,12 +13,13 @@ export type Params = {
 };
 
 export type VaultParams = {
-  market: 'sETH';
-  roundDuration: 604800;
-  tokenName: 'LyraVault Share';
-  tokenSymbol: 'Lyra VS';
-  decimals: 18;
-  cap: '100000';
+  market: string;
+  roundDuration: number;
+  tokenName: string;
+  tokenSymbol: string;
+  decimals: number;
+  cap: string;
+  depositAsset: string;
 };
 
 export type StrategyDetail = {

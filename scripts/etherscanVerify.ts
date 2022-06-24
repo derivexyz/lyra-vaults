@@ -21,12 +21,12 @@ async function main() {
       {
         decimals: params.vault.decimals,
         cap: params.vault.cap,
-        asset: lyraMarket.BaseAsset.address,
+        asset: params.vault.depositAsset === 'quote' ? lyraGlobal.QuoteAsset.address : lyraMarket.BaseAsset.address,
       },
     ],
   });
 
-  // Strategy: currently failing due to size of LyraAdapter...
+  // Strategy: currently failing due to size of LyraAdapter... should use interfaces in adapter...
   await hre.run('verify:verify', {
     address: (await hre.deployments.get(params.contract)).address,
     constructorArguments: [(await hre.deployments.get('LyraVault')).address, params.optionType],
