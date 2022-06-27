@@ -16,6 +16,7 @@ async function main() {
     {
       from: deployer,
       log: true,
+      gasLimit: 15000000,
     },
     'trade',
     45, // strikeId
