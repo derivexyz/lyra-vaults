@@ -1,0 +1,28 @@
+{
+  "network": "kovan-ovm",
+  "vault": {
+    "market": "sETH",
+    "roundDuration": 604800,
+    "tokenName": "LyraVault Share",
+    "tokenSymbol": "Lyra VS",
+    "decimals": 18,
+    "cap": "100000",
+    "depositAsset": "quote"
+  },
+  "contract": "DeltaShortStrategy",
+  "optionType": "SHORT_PUT_QUOTE",
+  "strategyDetail": {
+    "minTimeToExpiry": 432000,  
+    "maxTimeToExpiry": 1296000,
+    "targetDelta": "-0.2", 
+    "maxDeltaGap": "0.15", 
+    "minVol": "0", 
+    "maxVol": "2", 
+    "size": "5",
+    "minTradeInterval": 600,
+    "maxVolVariance": "1", 
+    "gwavPeriod": 3600,
+    "collatBuffer": "1.5",
+    "collatPercent": "0.75"
+  }
+}

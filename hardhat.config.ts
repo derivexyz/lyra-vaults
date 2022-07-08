@@ -1,15 +1,18 @@
 import '@eth-optimism/plugins/hardhat/compiler';
 import { lyraContractPaths } from '@lyrafinance/protocol/dist/test/utils/package/index-paths';
 import '@nomiclabs/hardhat-ethers';
+import '@nomiclabs/hardhat-etherscan';
 import '@nomiclabs/hardhat-waffle';
 import '@typechain/hardhat';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import 'hardhat-contract-sizer';
 import 'hardhat-dependency-compiler';
+import 'hardhat-deploy';
 import 'hardhat-gas-reporter';
 import 'hardhat-tracer';
 import 'solidity-coverage';
+import { loadEnv } from './scripts/utils';
 
 dotenv.config();
 
@@ -37,19 +40,21 @@ export default {
       url: 'http://127.0.0.1:8545',
       accounts: { mnemonic },
       gasPrice: 0,
-      ovm: true,
     },
     'kovan-ovm': {
       url: 'https://kovan.optimism.io',
-      ovm: true,
+      accounts: [loadEnv().PRIVATE_KEY],
     },
+  },
+  namedAccounts: {
+    deployer: 0,
   },
   solidity: {
     version: '0.8.9',
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1,
+        runs: 1000,
       },
     },
   },

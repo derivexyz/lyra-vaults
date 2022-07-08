@@ -9,13 +9,12 @@
   "scripts": {
     "clean": "hardhat clean && rimraf ./cache && rimraf ./artifacts && rimraf ./cache-ovm && rimraf ./artifacts-ovm",
     "compile": "hardhat compile",
-    "compile:ovm": "hardhat compile --network local-ovm",
     "build": "yarn clean && yarn compile",
     "test": "yarn hardhat test",
     "coverage": "yarn hardhat coverage",
-    "deploy:wait": "wait-port 8545 && wait-port 9545 && yarn deployAndSeed",
-    "deployTest": "hardhat run scripts/deployTest.ts",
-    "seedTest": "hardhat run scripts/seedTest.ts",
+    "deployVault:kovan": "yarn hardhat deploy --network kovan-ovm --export deployments/kovan-ovm/deployments.json",
+    "deployVault:mainnet": "yarn hardhat deploy --network mainnet-ovm --export deployments/mainnet-ovm/deployments.json",
+    "deployLyra:local": "wait-port 8545 && yarn hardhat run scripts/lyraDeployLocal.ts",
     "docify": "node docify.js",
     "docgen": "yarn doc:uml && yarn docify",
     "lint": "yarn run lint:sol && yarn run lint:ts",
@@ -29,14 +28,16 @@
     "prettier:json:md": "prettier --config .prettierrc --write \"**/*.{json,md}\"",
     "prettier": "yarn prettier:sol && yarn prettier:ts",
     "size": "hardhat size-contracts",
-    "gas-report": "REPORT_GAS=true yarn hardhat test"
+    "gas-report": "REPORT_GAS=true yarn hardhat test",
+    "verifyVault:kovan": "yarn clean && yarn hardhat run scripts/etherscanVerify.ts --network kovan-ovm",
+    "verifyVault:mainnet": "yarn clean && yarn hardhat run scripts/etherscanVerify.ts --network mainnet-ovm"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@eth-optimism/plugins": "^1.0.0-alpha.3",
     "@ethereum-waffle/mock-contract": "^3.3.0",
-    "@lyrafinance/protocol": "0.1.1-alpha",
+    "@lyrafinance/protocol": "^0.1.2-alpha",
     "@nomiclabs/hardhat-ethers": "^2.0.5",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/contracts": "^4.4.1",
@@ -54,6 +55,8 @@
     "hardhat": "^2.8.0",
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-dependency-compiler": "^1.1.2",
+    "hardhat-deploy": "^0.11.10",
+    "hardhat-deploy-ethers": "^0.3.0-beta.13",
     "hardhat-gas-reporter": "^1.0.8",
     "husky": "4.3.8",
     "lint-staged": "^10.5.4",
@@ -87,10 +90,11 @@
   },
   "dependencies": {
     "@ethersproject/abi": "^5.4.0",
-    "@nomiclabs/hardhat-etherscan": "^2.1.6",
+    "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@typechain/hardhat": "^3.0.0",
     "dotenv": "^10.0.0",
     "hardhat-tracer": "1.0.0-alpha.6",
-    "solidity-coverage": "^0.7.20"
+    "solidity-coverage": "^0.7.20",
+    "synthetix": "https://github.com/joshpwrk/synthetix#dependancy-changes-for-integrations"
   }
 }

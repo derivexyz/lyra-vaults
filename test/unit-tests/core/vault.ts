@@ -231,7 +231,7 @@ describe('Unit test: Basic LyraVault flow', async () => {
     });
 
     it('should revert if trying to start the next round within 24 hours from close', async () => {
-      await expect(vault.startNextRound(0)).to.be.revertedWith('CD');
+      await expect(vault.startNextRound(0)).to.be.revertedWith('Delay between rounds not elapsed');
     });
 
     it('should roll into the next round and pay the recipient fees', async () => {

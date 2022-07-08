@@ -111,7 +111,7 @@ contract LyraVault is Ownable, BaseVault {
   /// @param boardId board id (asset + expiry) for next round.
   function startNextRound(uint boardId) external onlyOwner {
     require(!vaultState.roundInProgress, "round in progress");
-    require(block.timestamp > vaultState.nextRoundReadyTimestamp, "CD");
+    require(block.timestamp > vaultState.nextRoundReadyTimestamp, "Delay between rounds not elapsed");
 
     strategy.setBoard(boardId);
 
