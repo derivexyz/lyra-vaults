@@ -35,8 +35,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     'initAdapter',
     lyraGlobal.LyraRegistry.address,
     lyraMarket.OptionMarket.address,
-    ZERO_ADDRESS, // curve swap
-    ZERO_ADDRESS, // basic fee counter (not yet deployed by lyra)
+    ZERO_ADDRESS, // @todo: curve swap
+    ZERO_ADDRESS, // @todo: basic fee counter (not yet deployed by lyra)
   );
   console.log('initAdapter complete...');
 

@@ -1,9 +1,12 @@
 import { lyraConstants, lyraDefaultParams, TestSystem, TestSystemContractsType } from '@lyrafinance/protocol';
 import { toBN } from '@lyrafinance/protocol/dist/scripts/util/web3utils';
 import { TradeInputParametersStruct } from '@lyrafinance/protocol/dist/typechain-types/BasicOptionMarketWrapper';
+import * as dotenv from 'dotenv';
 import { ethers } from 'hardhat';
 
-// THIS SCRIPT IS EXPERIMENTAL AND WAS MEANT FOR INTERNAL USE!!!
+dotenv.config();
+
+// THIS SCRIPT IS EXPERIMENTAL
 
 // This script deploys all real SNX contracts to localhost and deploys Lyra markets on top of them.
 // You can use the files in .snx to tune SNX deployment params.
@@ -11,7 +14,8 @@ async function main() {
   // 0. Must run `yarn hardhat node` first
   // 1. Setup
   const provider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-  const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+  const privateKey = process.env.PRIVATE_KEY as string;
+
   provider.getGasPrice = async () => {
     return ethers.BigNumber.from('0');
   };
