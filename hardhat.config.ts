@@ -33,16 +33,13 @@ export default {
       accounts: { mnemonic },
       gasPrice: 0,
     },
-    kovan: {
-      url: 'https://kovan.infura.io/v3/',
-    },
     'local-ovm': {
       url: 'http://127.0.0.1:8545',
       accounts: { mnemonic },
       gasPrice: 0,
     },
-    'kovan-ovm': {
-      url: 'https://kovan.optimism.io',
+    'goerli-ovm': {
+      url: 'https://goerli.optimism.io/',
       accounts: [loadEnv().PRIVATE_KEY],
     },
   },
@@ -67,6 +64,16 @@ export default {
   },
   etherscan: {
     apiKey: etherscanKey,
+    customChains: [
+      {
+        network: 'goerli-ovm',
+        chainId: 420,
+        urls: {
+          apiURL: 'https://blockscout.com/optimism/goerli/api',
+          browserURL: 'https://blockscout.com/optimism/goerli',
+        },
+      },
+    ],
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
