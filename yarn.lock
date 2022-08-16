@@ -1098,9 +1098,10 @@
   resolved "https://registry.npmjs.org/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
-"@lyrafinance/protocol@file:../tar/lyrafinance-protocol-0.1.3.c-alpha.tgz":
+"@lyrafinance/protocol@^0.1.3-alpha":
   version "0.1.3-alpha"
-  resolved "file:../tar/lyrafinance-protocol-0.1.3.c-alpha.tgz#4588b1b6a12a1a1b26a068e357eec1620e31c33a"
+  resolved "https://registry.yarnpkg.com/@lyrafinance/protocol/-/protocol-0.1.3-alpha.tgz#4588b1b6a12a1a1b26a068e357eec1620e31c33a"
+  integrity sha512-oUO/m3kS6Bx0SmVID2PIjZ6RFVfixQV66I8hShuuMOIytehmxQtex5DgtMFDYumoO6MuyoZ18vKtDMHT0HLCXg==
   dependencies:
     "@ethersproject/abi" "^5.4.0"
     "@ethersproject/abstract-provider" "^5.6.0"
