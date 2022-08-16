@@ -1,7 +1,7 @@
 import * as hre from 'hardhat';
 // import { loadParams } from './utils';
 
-// make sure to run with `yarn verify --network kovan-ovm`
+// make sure to run with `yarn verify --network goerli-ovm`
 async function main() {
   //   const params = loadParams();
   const { deployer } = await hre.getNamedAccounts();

@@ -9,7 +9,7 @@ All of the above params are loaded from `deployments/params.json`.
 
 ### Verifying contracts
 
-Call `yarn verifyVault:kovan` or `yarn verifyVault:mainnet` to etherscan verify the deployed contracts.
+Call `yarn verifyVault:goerli` or `yarn verifyVault:mainnet` to etherscan verify the deployed contracts.
 
 ### Deployments Addresses
 
@@ -17,7 +17,7 @@ It is recommended that you set the `PATH` field to `deployments/YOUR_NETWORK/dep
 
 ### Dedeploying Contracts
 
-`hardhat-deploy` will skip scripts if the contract is already deployed. To redeploy, delete all the contents of the `deployments/kovan-ovm` folder (insert another network name if different).
+`hardhat-deploy` will skip scripts if the contract is already deployed. To redeploy, delete all the contents of the `deployments/goerli-ovm` folder (insert another network name if different).
 
 ### Local Deployment
 
