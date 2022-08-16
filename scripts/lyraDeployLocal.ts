@@ -63,9 +63,9 @@ async function main() {
   // Interact with contracts //
   /////////////////////////////
 
-  // For kovan/ovm refer to `kovanInteraction.ts`
+  // For goerli-ovm refer to `goerliInteraction.ts`
 
-  // 'local' used here as example, but can pass in 'kovan-ovm' or 'mainnet-ovm' instead of 'local'.
+  // 'local' used here as example, but can pass in 'goerli-ovm' or 'mainnet-ovm' instead of 'local'.
   // 1. get global contracts
   const lyraGlobal = await getGlobalDeploys('local');
   console.log('contract name:', lyraGlobal.SynthetixAdapter.contractName);

@@ -3,8 +3,8 @@ import { DeployFunction } from 'hardhat-deploy/types';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { loadParams, Params } from '../scripts/utils';
 
-// run with `yarn hardhat deploy --network kovan-ovm --export deployments/kovan-ovm/deployments.json`
-// also set "network: kovan-ovm" in the params.json folder.
+// run with `yarn hardhat deploy --network goerli-ovm --export deployments/goerli-ovm/deployments.json`
+// also set "network: goerli-ovm" in the params.json folder.
 
 // `hardhat.config.ts` uses `.env.defaults/private` to assign deployer address
 
