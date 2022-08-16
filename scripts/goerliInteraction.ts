@@ -24,7 +24,7 @@ async function main() {
   const optionMarket = new Contract(lyraMarket.OptionMarket.address, lyraMarket.OptionMarket.abi, deployer);
 
   // 3. call lyra
-  await execute(testFaucet, 'drip', [] as any, provider); // skip as addresses already has liquidity
+  // await execute(testFaucet, 'drip', [] as any, provider); // skip as addresses already has liquidity
   await execute(sUSD, 'approve', [optionMarket.address, constants.MAX_UINT], provider);
 
   const tradeParams = {
