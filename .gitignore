@@ -16,6 +16,6 @@ coverage
 coverage.json
 
 # deployments
-deployments/kovan-ovm/solcInputs/
-deployments/kovan-ovm/.chainId
+deployments/goerli-ovm/solcInputs/
+deployments/goerli-ovm/.chainId
 deployments/local/

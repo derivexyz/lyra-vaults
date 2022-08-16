@@ -12,7 +12,7 @@
     "build": "yarn clean && yarn compile",
     "test": "yarn hardhat test",
     "coverage": "yarn hardhat coverage",
-    "deployVault:kovan": "yarn hardhat deploy --network kovan-ovm --export deployments/kovan-ovm/deployments.json",
+    "deployVault:goerli": "yarn hardhat deploy --network goerli-ovm --export deployments/goerli-ovm/deployments.json",
     "deployVault:mainnet": "yarn hardhat deploy --network mainnet-ovm --export deployments/mainnet-ovm/deployments.json",
     "deployLyra:local": "wait-port 8545 && yarn hardhat run scripts/lyraDeployLocal.ts",
     "docify": "node docify.js",
@@ -29,7 +29,7 @@
     "prettier": "yarn prettier:sol && yarn prettier:ts",
     "size": "hardhat size-contracts",
     "gas-report": "REPORT_GAS=true yarn hardhat test",
-    "verifyVault:kovan": "yarn clean && yarn hardhat run scripts/etherscanVerify.ts --network kovan-ovm",
+    "verifyVault:goerli": "yarn clean && yarn hardhat run scripts/etherscanVerify.ts --network goerli-ovm",
     "verifyVault:mainnet": "yarn clean && yarn hardhat run scripts/etherscanVerify.ts --network mainnet-ovm"
   },
   "author": "",
@@ -37,7 +37,7 @@
   "devDependencies": {
     "@eth-optimism/plugins": "^1.0.0-alpha.3",
     "@ethereum-waffle/mock-contract": "^3.3.0",
-    "@lyrafinance/protocol": "^0.1.2-alpha",
+    "@lyrafinance/protocol": "^0.1.3-alpha",
     "@nomiclabs/hardhat-ethers": "^2.0.5",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/contracts": "^4.4.1",
